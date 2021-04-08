@@ -16,6 +16,8 @@ Supports containers, variadic packs, pointer and size pairs, c arrays.
 
 ## Examples
 
+With C++17 structured bindings we can bind member variables to convenient aliases.
+
 ### Variadic Packs
 
 ```cpp
@@ -56,8 +58,9 @@ int main() {
 
 int main() {
     using hipony::enumerate;
-    for (auto&& [index, value] : enumerate(std::vector{1, 2, 3, 4, 5})) {
-        std::cout << value << '\n';
+    for (auto&& item : enumerate(std::vector<int>{1, 2, 3, 4, 5})) {
+        std::cout << item.index << '\n';
+        std::cout << item.value << '\n';
     }
 }
 ```
@@ -73,11 +76,12 @@ int main() {
 
 int main() {
     using hipony::enumerate;
-    auto const vec = std::vector{1, 2, 3, 4, 5};
-    for (auto&& [index, value] : enumerate(vec)) {
+    auto const vec = std::vector<int>{1, 2, 3, 4, 5};
+    for (auto&& item : enumerate(vec)) {
         static_assert(
-            std::is_same_v<int const&, decltype(value)>);
-        std::cout << value << '\n';
+            std::is_same<int const&, decltype(value)>::value);
+        std::cout << item.index << '\n';
+        std::cout << item.value << '\n';
     }
 }
 ```
@@ -92,8 +96,9 @@ int main() {
 int main() {
     using hipony::enumerate;
     int container[] = {0, 1, 2, 3, 4};
-    for (auto&& [index, value] : enumerate(container)) {
-        std::cout << value << '\n';
+    for (auto&& item : enumerate(container)) {
+        std::cout << item.index << '\n';
+        std::cout << item.value << '\n';
     }
 }
 ```
@@ -109,8 +114,9 @@ int main() {
     using hipony::enumerate;
     auto       container = "01234";
     auto const size      = 5;
-    for (auto&& [index, value] : enumerate(container, size)) {
-        std::cout << value << '\n';
+    for (auto&& item : enumerate(container, size)) {
+        std::cout << item.index << '\n';
+        std::cout << item.value << '\n';
     }
 }
 ```
@@ -125,10 +131,11 @@ int main() {
 
 int main() {
     using hipony::enumerate;
-    auto const vec  = std::vector{1, 2, 3, 4, 5};
+    auto const vec  = std::vector<int>{1, 2, 3, 4, 5};
     auto const size = 3;
-    for (auto&& [index, value] : enumerate(vec, size)) {
-        std::cout << value << '\n';
+    for (auto&& item : enumerate(vec, size)) {
+        std::cout << item.index << '\n';
+        std::cout << item.value << '\n';
     }
 }
 ```
@@ -144,8 +151,9 @@ int main() {
     using hipony::enumerate;
     int        container[] = {0, 1, 2, 3, 4};
     auto const size = 3;
-    for (auto&& [index, value] : enumerate(container, size)) {
-        std::cout << value << '\n';
+    for (auto&& item : enumerate(container, size)) {
+        std::cout << item.index << '\n';
+        std::cout << item.value << '\n';
     }
 }
 ```
