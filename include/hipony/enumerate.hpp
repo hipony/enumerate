@@ -44,11 +44,31 @@ namespace hipony_enumerate {
 namespace detail {
 
 template<typename T>
+constexpr auto is_same() -> bool
+{
+    return true;
+}
+
+template<typename T, typename First, typename... Tail>
+constexpr auto is_same() -> bool
+{
+    return std::is_same<T, First>::value && detail::is_same<T, Tail...>();
+}
+
+template<typename T>
+using remove_cvref_t = typename std::remove_reference<typename std::remove_cv<T>::type>::type;
+
+template<typename T>
 class span {
 public:
-    using pointer   = T*;
-    using size_type = std::size_t;
-    using iterator  = pointer;
+    using value_type      = T;
+    using pointer         = T*;
+    using reference       = T&;
+    using const_reference = const T&;
+    using iterator        = pointer;
+    using const_iterator  = iterator;
+    using difference_type = typename std::iterator_traits<iterator>::difference_type;
+    using size_type       = typename std::make_unsigned<difference_type>::type;
 
 private:
     pointer   _ptr;
@@ -76,10 +96,13 @@ public:
     }
 };
 
-template<typename T>
+template<typename T, typename IndexType>
 struct iterator_value {
-    std::size_t index;
-    T           value;
+    using index_type = IndexType;
+    using value_type = T;
+
+    index_type index;
+    value_type value;
 
     HIPONY_ENUMERATE_NODISCARD friend auto
     operator==(iterator_value const& lhs, iterator_value const& rhs) -> bool
@@ -101,18 +124,20 @@ public:
     using inner_reference = decltype(*inner_iterator{});
 
     using iterator_category = std::forward_iterator_tag;
-    using difference_type   = std::ptrdiff_t;
-    using value_type        = iterator_value<inner_reference>;
-    using pointer           = iterator_value<inner_reference>;
-    using reference         = iterator_value<inner_reference>;
+    using difference_type   = typename detail::remove_cvref_t<Container>::difference_type;
+    using size_type         = typename detail::remove_cvref_t<Container>::size_type;
+    using value_type        = iterator_value<inner_reference, size_type>;
+    using pointer           = iterator_value<inner_reference, size_type>;
+    using reference         = iterator_value<inner_reference, size_type>;
 
 private:
-    std::size_t    _index{};
-    inner_iterator _iterator{};
+    size_type      _index;
+    inner_iterator _iterator;
 
 public:
     iterator(inner_iterator iterator)
-        : _iterator{std::move(iterator)}
+        : _index{0}
+        , _iterator{std::move(iterator)}
     {}
 
     HIPONY_ENUMERATE_NODISCARD auto operator*() const -> reference
@@ -154,8 +179,10 @@ public:
 
 template<typename Container>
 struct wrapper {
-    Container   data;
-    std::size_t size;
+    using size_type = typename detail::remove_cvref_t<Container>::size_type;
+
+    Container data;
+    size_type size;
 
     HIPONY_ENUMERATE_NODISCARD auto begin() -> iterator<Container>
     {
@@ -167,21 +194,6 @@ struct wrapper {
         return {data.size() < size ? std::end(data) : std::next(std::begin(data), size)};
     }
 };
-
-template<typename T>
-constexpr auto is_same() -> bool
-{
-    return true;
-}
-
-template<typename T, typename First, typename... Tail>
-constexpr auto is_same() -> bool
-{
-    return std::is_same<T, First>::value && detail::is_same<T, Tail...>();
-}
-
-template<typename T>
-using remove_cvref_t = typename std::remove_reference<typename std::remove_cv<T>::type>::type;
 
 } // namespace detail
 
