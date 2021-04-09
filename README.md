@@ -79,7 +79,7 @@ int main() {
     auto const vec = std::vector<int>{1, 2, 3, 4, 5};
     for (auto&& item : enumerate(vec)) {
         static_assert(
-            std::is_same<int const&, decltype(value)>::value);
+            std::is_same<int const&, decltype(item.value)>::value);
         std::cout << item.index << '\n';
         std::cout << item.value << '\n';
     }
