@@ -150,7 +150,7 @@ public:
         return {_index, *_iterator};
     }
 
-    auto operator++() -> iterator&
+    auto operator++() noexcept -> iterator&
     {
         _iterator++;
         _index++;
