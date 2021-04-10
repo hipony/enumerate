@@ -55,15 +55,12 @@ constexpr auto is_same() noexcept -> bool
 }
 
 template<typename It>
-constexpr auto
-do_next(It it, typename std::iterator_traits<It>::difference_type n, std::input_iterator_tag) noexcept
-    -> It
+constexpr auto do_next(
+    It                                                 it,
+    typename std::iterator_traits<It>::difference_type n,
+    std::input_iterator_tag                            tag) noexcept -> It
 {
-    while (n > 0) {
-        --n;
-        ++it;
-    }
-    return it;
+    return (n > 0) ? do_next(++it, --n, tag) : it;
 }
 
 template<typename It>
@@ -72,15 +69,7 @@ constexpr auto do_advance(
     typename std::iterator_traits<It>::difference_type n,
     std::bidirectional_iterator_tag                    tag) noexcept -> It
 {
-    while (n > 0) {
-        --n;
-        ++it;
-    }
-    while (n < 0) {
-        ++n;
-        --it;
-    }
-    return it;
+    return (n > 0) ? do_next(++it, --n, tag) : ((n < 0) ? do_next(--it, ++n, tag) : it);
 }
 
 template<typename It>
@@ -89,18 +78,16 @@ constexpr auto do_advance(
     typename std::iterator_traits<It>::difference_type n,
     std::random_access_iterator_tag) noexcept -> It
 {
-    it += n;
-    return it;
+    return it + n;
 }
 
 template<typename It>
 constexpr auto next(It it, typename std::iterator_traits<It>::difference_type n) noexcept -> It
 {
-    detail::do_next(
+    return detail::do_next(
         it,
         typename std::iterator_traits<It>::difference_type(n),
         typename std::iterator_traits<It>::iterator_category());
-    return it;
 }
 
 template<typename T>
