@@ -44,6 +44,8 @@ jobs:
 
         - name: Install Packages
           run: |
+            echo "apt http://archive.ubuntu.com/ubuntu bionic main universe" | sudo tee -a /etc/apt/sources.list
+            sudo apt update
             sudo apt install ninja-build ${{matrix.install}}
             pip install conan
 
@@ -61,7 +63,7 @@ jobs:
             compiler.libcxx=libstdc++11
             [env]
             CC=${{matrix.compiler}}-${{matrix.version}}
-            CXX=${{matrix.compiler}}-${{matrix.version}}
+            CXX=${{matrix.install}}
             END
 
             mkdir -p cmake/toolchains/
