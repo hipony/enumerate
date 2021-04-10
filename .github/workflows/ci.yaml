@@ -21,6 +21,10 @@ jobs:
             cppstd: "11 14 17 20"
             install: g++-8
           - compiler: gcc
+            version: "9"
+            cppstd: "11 14 17 20"
+            install: g++-9
+          - compiler: gcc
             version: "10"
             cppstd: "11 14 17 20"
             install: g++-10
@@ -48,34 +52,6 @@ jobs:
             sudo apt update
             sudo apt install ninja-build ${{matrix.install}}
             pip install conan
-
-        - name: Setup Toolchains
-          run: |
-            for cppstd in ${{matrix.cppstd}}
-            do
-            mkdir -p conan/profiles/
-            tee -a conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${cppstd} <<END
-            include(default)
-            [settings]
-            compiler=${{matrix.compiler}}
-            compiler.version=${{matrix.version}}
-            compiler.cppstd=${cppstd}
-            compiler.libcxx=libstdc++11
-            [env]
-            CC=${{matrix.compiler}}-${{matrix.version}}
-            CXX=${{matrix.install}}
-            END
-
-            mkdir -p cmake/toolchains/
-            tee -a cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${cppstd} <<END
-            set(CMAKE_C_COMPILER ${{matrix.compiler}}-${{matrix.version}})
-            set(CMAKE_CXX_COMPILER ${{matrix.compiler}}-${{matrix.version}})
-
-            set(CMAKE_CXX_STANDARD ${cppstd})
-            set(CMAKE_CXX_STANDARD_REQUIRED ON)
-            set(CMAKE_CXX_EXTENSIONS OFF)
-            END
-            done
 
         - name: Build
           run: |
