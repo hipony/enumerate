@@ -63,21 +63,21 @@ jobs:
             for cppstd in ${{matrix.cppstd}}
             do
             mkdir -p conan/profiles/
-            tee -a conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} <<END
+            tee -a conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${cppstd} <<END
             include(default)
             [settings]
             compiler=${{matrix.compiler}}
             compiler.version=${{matrix.version}}
-            compiler.cppstd=${{matrix.cppstd}}
+            compiler.cppstd=${cppstd}
             compiler.libcxx=libstdc++11
             END
 
             mkdir -p cmake/toolchains/
-            tee -a cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} <<END
+            tee -a cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${cppstd} <<END
             set(CMAKE_C_COMPILER ${{matrix.compiler}}-${{matrix.version}})
             set(CMAKE_CXX_COMPILER ${{matrix.compiler}}-${{matrix.version}})
 
-            set(CMAKE_CXX_STANDARD ${{matrix.cppstd}})
+            set(CMAKE_CXX_STANDARD ${cppstd})
             set(CMAKE_CXX_STANDARD_REQUIRED ON)
             set(CMAKE_CXX_EXTENSIONS OFF)
             END
@@ -87,8 +87,8 @@ jobs:
           run: |
             for cppstd in ${{matrix.cppstd}}
             do
-              conan install . -if=build -b=missing -pr=conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}}
+              conan install . -if=build -b=missing -pr=conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
               cd build
-              cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}}
+              cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
               cmake --build .
             done
