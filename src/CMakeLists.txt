@@ -31,7 +31,6 @@ if(BUILD_TESTING)
 
     add_executable(enumerate-cpp20-tests
         enumerate.test.cpp
-        enumerate.cpp20.test.cpp
     )
     target_link_libraries(enumerate-cpp20-tests
         PRIVATE

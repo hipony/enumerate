@@ -16,7 +16,7 @@ TEST_CASE("variadic pack", "[enumerate]")
     auto i = 0;
     for (auto&& item : enumerate(0, 1, 2, 3, 4)) {
         static_assert(
-            std::is_same<int const&, decltype(item.value)>::value, "Incorrect type propagation");
+            std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
         REQUIRE(i == item.index);
         REQUIRE(i == item.value);
@@ -210,6 +210,23 @@ TEST_CASE("container constraint more than size", "[enumerate]")
         ++i;
     }
     REQUIRE(i == container.size());
+}
+
+TEST_CASE("constexpr", "[enumerate]")
+{
+    struct function_object {
+        constexpr auto operator()() const -> int
+        {
+            for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
+                if (item.index == 3) {
+                    return item.value;
+                }
+            }
+            return 0;
+        }
+    };
+    constexpr auto const value = function_object{}();
+    REQUIRE(value == 30);
 }
 
 } // namespace hipony
