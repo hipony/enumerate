@@ -61,6 +61,7 @@ jobs:
           run: |
             for cppstd in ${{matrix.cppstd}}
             do
+            mkdir -p conan/profiles/
             tee -a conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} <<END
             include(default)
             [settings]
@@ -70,6 +71,7 @@ jobs:
             compiler.libcxx=libstdc++11
             END
 
+            mkdir -p cmake/toolchains/
             tee -a cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} <<END
             set(CMAKE_C_COMPILER ${{matrix.compiler}}-${{matrix.version}})
             set(CMAKE_CXX_COMPILER ${{matrix.compiler}}-${{matrix.version}})
