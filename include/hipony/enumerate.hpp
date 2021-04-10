@@ -55,22 +55,22 @@ constexpr auto is_same() noexcept -> bool
 }
 
 template<typename It>
-constexpr void do_advance(
-    It&                                                it,
-    typename std::iterator_traits<It>::difference_type n,
-    std::input_iterator_tag) noexcept
+constexpr auto
+do_next(It it, typename std::iterator_traits<It>::difference_type n, std::input_iterator_tag) noexcept
+    -> It
 {
     while (n > 0) {
         --n;
         ++it;
     }
+    return it;
 }
 
 template<typename It>
-constexpr void do_advance(
-    It&                                                it,
+constexpr auto do_advance(
+    It                                                 it,
     typename std::iterator_traits<It>::difference_type n,
-    std::bidirectional_iterator_tag                    tag) noexcept
+    std::bidirectional_iterator_tag                    tag) noexcept -> It
 {
     while (n > 0) {
         --n;
@@ -80,21 +80,23 @@ constexpr void do_advance(
         ++n;
         --it;
     }
+    return it;
 }
 
 template<typename It>
-constexpr void do_advance(
-    It&                                                it,
+constexpr auto do_advance(
+    It                                                 it,
     typename std::iterator_traits<It>::difference_type n,
-    std::random_access_iterator_tag) noexcept
+    std::random_access_iterator_tag) noexcept -> It
 {
     it += n;
+    return it;
 }
 
 template<typename It>
 constexpr auto next(It it, typename std::iterator_traits<It>::difference_type n) noexcept -> It
 {
-    detail::do_advance(
+    detail::do_next(
         it,
         typename std::iterator_traits<It>::difference_type(n),
         typename std::iterator_traits<It>::iterator_category());
@@ -149,7 +151,6 @@ struct array {
     using reference       = T&;
     using const_reference = const T&;
     using iterator        = T*;
-    using const_iterator  = T const*;
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
     using size_type       = typename std::make_unsigned<difference_type>::type;
 
@@ -165,12 +166,12 @@ struct array {
         return data + N;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() const noexcept -> const_iterator
+    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() const noexcept -> iterator
     {
         return data;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() const noexcept -> const_iterator
+    HIPONY_ENUMERATE_NODISCARD constexpr auto end() const noexcept -> iterator
     {
         return data + N;
     }
