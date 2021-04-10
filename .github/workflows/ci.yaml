@@ -6,9 +6,6 @@ on:
     branches:
       - main
 
-env:
-    BUILD_TYPE: Release
-
 jobs:
   ubuntu:
     strategy:
@@ -28,9 +25,9 @@ jobs:
             cppstd: "11 14 17 20"
             install: g++-10
           - compiler: clang
-            version: "3.5"
+            version: "3.9"
             cppstd: "11 14"
-            install: clang-3.5
+            install: clang-3.9
           - compiler: clang
             version: "5.0"
             cppstd: "11 14 17"
@@ -86,6 +83,6 @@ jobs:
             do
               conan install . -if=build -b=missing -pr=conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
               cd build
-              cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
+              cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
               cmake --build .
             done
