@@ -55,8 +55,10 @@ constexpr auto is_same() noexcept -> bool
 }
 
 template<typename It>
-constexpr auto
-do_advance(It& it, typename std::iterator_traits<It>::difference_type n, std::input_iterator_tag)
+constexpr void do_advance(
+    It&                                                it,
+    typename std::iterator_traits<It>::difference_type n,
+    std::input_iterator_tag) noexcept
 {
     while (n > 0) {
         --n;
@@ -65,10 +67,10 @@ do_advance(It& it, typename std::iterator_traits<It>::difference_type n, std::in
 }
 
 template<typename It>
-constexpr auto do_advance(
+constexpr void do_advance(
     It&                                                it,
     typename std::iterator_traits<It>::difference_type n,
-    std::bidirectional_iterator_tag                    tag)
+    std::bidirectional_iterator_tag                    tag) noexcept
 {
     while (n > 0) {
         --n;
@@ -81,16 +83,16 @@ constexpr auto do_advance(
 }
 
 template<typename It>
-constexpr auto do_advance(
+constexpr void do_advance(
     It&                                                it,
     typename std::iterator_traits<It>::difference_type n,
-    std::random_access_iterator_tag)
+    std::random_access_iterator_tag) noexcept
 {
     it += n;
 }
 
 template<typename It>
-constexpr auto next(It it, typename std::iterator_traits<It>::difference_type n)
+constexpr auto next(It it, typename std::iterator_traits<It>::difference_type n) noexcept -> It
 {
     detail::do_advance(
         it,
@@ -123,16 +125,6 @@ public:
         : _ptr{ptr}
         , _size{size}
     {}
-
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() noexcept -> iterator
-    {
-        return _ptr;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() noexcept -> iterator
-    {
-        return _ptr + _size;
-    }
 
     HIPONY_ENUMERATE_NODISCARD constexpr auto begin() const noexcept -> const_iterator
     {
