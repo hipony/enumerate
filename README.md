@@ -1,6 +1,6 @@
 # `hipony::enumerate`
 
-[![Language](https://img.shields.io/badge/C%2B%2B-11/14/17/20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization) [![License](https://img.shields.io/badge/license-BSL-blue.svg)](https://opensource.org/licenses/BSL-1.0)[![CI](https://github.com/hipony/enumerate/actions/workflows/ci.yaml/badge.svg)](https://github.com/hipony/enumerate/actions/workflows/ci.yaml)
+[![Language](https://img.shields.io/badge/C%2B%2B-11/14/17/20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization) [![License](https://img.shields.io/badge/license-BSL-blue.svg)](https://opensource.org/licenses/BSL-1.0) [![CI](https://github.com/hipony/enumerate/actions/workflows/ci.yaml/badge.svg)](https://github.com/hipony/enumerate/actions/workflows/ci.yaml)
 
 C++11 compatible version of `enumerate`.
 
