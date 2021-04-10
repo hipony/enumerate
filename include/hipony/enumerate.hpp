@@ -26,9 +26,17 @@
 #endif
 #endif
 
+#define HIPONY_ENUMERATE_CPP14_OR_GREATER (HIPONY_ENUMERATE_CPLUSPLUS >= 201402L)
 #define HIPONY_ENUMERATE_CPP17_OR_GREATER (HIPONY_ENUMERATE_CPLUSPLUS >= 201703L)
 
+#define HIPONY_ENUMERATE_HAS_CONSTEXPR HIPONY_ENUMERATE_CPP14_OR_GREATER
 #define HIPONY_ENUMERATE_HAS_NODISCARD HIPONY_ENUMERATE_CPP17_OR_GREATER
+
+#if HIPONY_ENUMERATE_HAS_CONSTEXPR
+#define HIPONY_ENUMERATE_CONSTEXPR constexpr
+#else
+#define HIPONY_ENUMERATE_CONSTEXPR /*constexpr*/
+#endif
 
 #if HIPONY_ENUMERATE_HAS_NODISCARD
 #define HIPONY_ENUMERATE_NODISCARD [[nodiscard]]
@@ -55,48 +63,40 @@ constexpr auto is_same() noexcept -> bool
 }
 
 template<typename It>
-constexpr auto
-do_advance(It& it, typename std::iterator_traits<It>::difference_type n, std::input_iterator_tag)
-{
-    while (n > 0) {
-        --n;
-        ++it;
-    }
-}
-
-template<typename It>
-constexpr auto do_advance(
-    It&                                                it,
+HIPONY_ENUMERATE_CONSTEXPR auto do_next(
+    It                                                 it,
     typename std::iterator_traits<It>::difference_type n,
-    std::bidirectional_iterator_tag                    tag)
+    std::input_iterator_tag                            tag) noexcept -> It
 {
-    while (n > 0) {
-        --n;
-        ++it;
-    }
-    while (n < 0) {
-        ++n;
-        --it;
-    }
+    return (n > 0) ? do_next(++it, --n, tag) : it;
 }
 
 template<typename It>
-constexpr auto do_advance(
-    It&                                                it,
+HIPONY_ENUMERATE_CONSTEXPR auto do_advance(
+    It                                                 it,
     typename std::iterator_traits<It>::difference_type n,
-    std::random_access_iterator_tag)
+    std::bidirectional_iterator_tag                    tag) noexcept -> It
 {
-    it += n;
+    return (n > 0) ? do_next(++it, --n, tag) : ((n < 0) ? do_next(--it, ++n, tag) : it);
 }
 
 template<typename It>
-constexpr auto next(It it, typename std::iterator_traits<It>::difference_type n)
+HIPONY_ENUMERATE_CONSTEXPR auto do_advance(
+    It                                                 it,
+    typename std::iterator_traits<It>::difference_type n,
+    std::random_access_iterator_tag) noexcept -> It
 {
-    detail::do_advance(
+    return it + n;
+}
+
+template<typename It>
+HIPONY_ENUMERATE_CONSTEXPR auto
+next(It it, typename std::iterator_traits<It>::difference_type n) noexcept -> It
+{
+    return detail::do_next(
         it,
         typename std::iterator_traits<It>::difference_type(n),
         typename std::iterator_traits<It>::iterator_category());
-    return it;
 }
 
 template<typename T>
@@ -119,32 +119,24 @@ private:
     size_type _size;
 
 public:
-    constexpr span(pointer ptr, size_type size)
+    HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr, size_type size)
         : _ptr{ptr}
         , _size{size}
     {}
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() noexcept -> iterator
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> const_iterator
     {
         return _ptr;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() noexcept -> iterator
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> const_iterator
     {
         return _ptr + _size;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() const noexcept -> const_iterator
-    {
-        return _ptr;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() const noexcept -> const_iterator
-    {
-        return _ptr + _size;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD constexpr auto size() const noexcept -> size_type
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
     {
         return _size;
     }
@@ -163,27 +155,29 @@ struct array {
 
     value_type data[N];
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() noexcept -> iterator
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept -> iterator
     {
         return data;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() noexcept -> iterator
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept -> iterator
     {
         return data + N;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() const noexcept -> const_iterator
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> const_iterator
     {
         return data;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() const noexcept -> const_iterator
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> const_iterator
     {
         return data + N;
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto size() const noexcept -> size_type
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
     {
         return N;
     }
@@ -197,13 +191,13 @@ struct iterator_value {
     index_type index;
     value_type value;
 
-    HIPONY_ENUMERATE_NODISCARD friend constexpr auto
+    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
     operator==(iterator_value const& lhs, iterator_value const& rhs) noexcept -> bool
     {
         return lhs.index == rhs.index && lhs.value == rhs.value;
     }
 
-    HIPONY_ENUMERATE_NODISCARD friend constexpr auto
+    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
     operator!=(iterator_value const& lhs, iterator_value const& rhs) noexcept -> bool
     {
         return !(lhs == rhs);
@@ -228,36 +222,41 @@ private:
     inner_iterator _iterator;
 
 public:
-    constexpr iterator(inner_iterator iterator)
+    HIPONY_ENUMERATE_CONSTEXPR iterator(inner_iterator iterator)
         : _index{0}
         , _iterator{static_cast<decltype(iterator)&&>(iterator)}
     {}
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto operator*() noexcept -> reference
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() noexcept -> reference
     {
         return {_index, *_iterator};
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto operator*() const noexcept -> reference
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() const noexcept
+        -> reference
     {
         return {_index, *_iterator};
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto operator->() noexcept -> pointer
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() noexcept -> pointer
     {
         return {_index, *_iterator};
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto operator->() const noexcept -> pointer
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() const noexcept
+        -> pointer
     {
         return {_index, *_iterator};
     }
 
-    constexpr auto operator++() noexcept -> iterator&
+    HIPONY_ENUMERATE_CONSTEXPR auto operator++() noexcept -> iterator&
     {
-        _iterator++;
-        _index++;
-        return *this;
+        return (_iterator++, _index++, *this);
+    }
+
+    HIPONY_ENUMERATE_CONSTEXPR auto operator++() const noexcept -> iterator const&
+    {
+        return (_iterator++, _index++, *this);
     }
 
     HIPONY_ENUMERATE_NODISCARD auto operator++(int) noexcept -> iterator
@@ -267,13 +266,13 @@ public:
         return tmp;
     }
 
-    HIPONY_ENUMERATE_NODISCARD friend constexpr auto
+    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
     operator==(iterator const& lhs, iterator const& rhs) noexcept -> bool
     {
         return lhs._iterator == rhs._iterator;
     }
 
-    HIPONY_ENUMERATE_NODISCARD friend constexpr auto
+    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
     operator!=(iterator const& lhs, iterator const& rhs) noexcept -> bool
     {
         return !(lhs == rhs);
@@ -287,22 +286,25 @@ struct wrapper {
     Container data;
     size_type size;
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() noexcept -> iterator<Container>
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<Container>
     {
         return {data.begin()};
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() noexcept -> iterator<Container>
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept -> iterator<Container>
     {
         return {data.size() < size ? data.end() : detail::next(data.begin(), size)};
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto begin() const noexcept -> iterator<Container>
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<Container>
     {
         return {data.begin()};
     }
 
-    HIPONY_ENUMERATE_NODISCARD constexpr auto end() const noexcept -> iterator<Container>
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<Container>
     {
         return {data.size() < size ? data.end() : detail::next(data.begin(), size)};
     }
@@ -311,24 +313,24 @@ struct wrapper {
 } // namespace detail
 
 template<typename Container>
-HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(Container&& c) noexcept
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(Container&& c) noexcept
     -> detail::wrapper<decltype(c)>
 {
     return {static_cast<decltype(c)&&>(c), c.size()};
 }
 
 template<typename Container>
-HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(Container&& c, std::size_t n) noexcept ->
-    typename std::enable_if<
-        !std::is_pointer<detail::remove_cvref_t<Container>>::value,
-        detail::wrapper<decltype(c)>>::type
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+enumerate(Container&& c, std::size_t n) noexcept -> typename std::enable_if<
+    !std::is_pointer<detail::remove_cvref_t<Container>>::value,
+    detail::wrapper<decltype(c)>>::type
 {
     return {static_cast<decltype(c)&&>(c), n};
 }
 
 template<typename T>
-HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(T ptr, std::size_t n) noexcept ->
-    typename std::enable_if<
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T ptr, std::size_t n) noexcept
+    -> typename std::enable_if<
         std::is_pointer<detail::remove_cvref_t<T>>::value,
         detail::wrapper<detail::span<typename std::remove_pointer<T>::type>>>::type
 {
@@ -336,8 +338,8 @@ HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(T ptr, std::size_t n) noexce
 }
 
 template<typename T, typename... Args>
-HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(T first, Args... args) noexcept ->
-    typename std::enable_if<
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T first, Args... args) noexcept
+    -> typename std::enable_if<
         detail::is_same<T, Args...>(),
         detail::wrapper<detail::array<T, sizeof...(Args) + 1>>>::type
 {
@@ -345,15 +347,15 @@ HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(T first, Args... args) noexc
 }
 
 template<typename T, std::size_t N>
-HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(T (&arr)[N]) noexcept
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T (&arr)[N]) noexcept
     -> detail::wrapper<detail::span<T>>
 {
     return {{arr, N}, N};
 }
 
 template<typename T, std::size_t N>
-HIPONY_ENUMERATE_NODISCARD constexpr auto enumerate(T (&arr)[N], std::size_t n) noexcept
-    -> detail::wrapper<detail::span<T>>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+enumerate(T (&arr)[N], std::size_t n) noexcept -> detail::wrapper<detail::span<T>>
 {
     return {{arr, N}, n};
 }

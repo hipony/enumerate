@@ -16,8 +16,8 @@ Supports constexpr, variadic packs, containers, pointer and size pairs, c arrays
 
 ## Examples
 
-* With C++17 structured bindings we can bind member variables to convenient aliases.
-* If you pass a constexpr container - you'll be able to evaluate it in a constant expression.
+* With C++17 structured bindings we can bind member variables to convenient aliases
+* With C++14 we can use `enumerate` in constexpr context
 
 ### Constexpr
 
@@ -41,7 +41,7 @@ consteval auto get() -> int
 ```
 
 ```cpp
-// C++11
+// C++14
 #include <hipony/enumerate.hpp>
 
 struct function_object {

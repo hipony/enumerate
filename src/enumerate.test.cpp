@@ -1,3 +1,8 @@
+// Copyright 2021 Alexandr Timofeev
+//
+// Distributed under the Boost Software License, Version 1.0
+// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1.0.txt)
+
 #include <hipony/enumerate.hpp>
 
 #include <catch2/catch.hpp>
@@ -212,6 +217,8 @@ TEST_CASE("container constraint more than size", "[enumerate]")
     REQUIRE(i == container.size());
 }
 
+#if HIPONY_ENUMERATE_HAS_CONSTEXPR
+
 TEST_CASE("constexpr", "[enumerate]")
 {
     struct function_object {
@@ -228,5 +235,7 @@ TEST_CASE("constexpr", "[enumerate]")
     constexpr auto const value = function_object{}();
     REQUIRE(value == 30);
 }
+
+#endif
 
 } // namespace hipony
