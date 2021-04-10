@@ -3,3 +3,6 @@ cmake_find_package_multi
 
 [build_requires]
 catch2/2.13.4@
+
+[options]
+catch2:with_main=True

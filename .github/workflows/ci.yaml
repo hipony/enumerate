@@ -12,31 +12,38 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - compiler: gcc
+          - toolset: gcc
+            compiler: g++-6
             version: "6"
             cppstd: "11 14 17"
             install: g++-6
-          - compiler: gcc
+          - toolset: gcc
+            compiler: g++-8
             version: "8"
             cppstd: "11 14 17 20"
             install: g++-8
-          - compiler: gcc
+          - toolset: gcc
+            compiler: g++-9
             version: "9"
             cppstd: "11 14 17 20"
             install: g++-9
-          - compiler: gcc
+          - toolset: gcc
+            compiler: g++-10
             version: "10"
             cppstd: "11 14 17 20"
             install: g++-10
-          - compiler: clang
+          - toolset: clang
+            compiler: clang++-3.9
             version: "3.9"
             cppstd: "11 14"
             install: clang-3.9
-          - compiler: clang
+          - toolset: clang
+            compiler: clang++-5.0
             version: "5.0"
             cppstd: "11 14 17"
             install: clang-5.0
-          - compiler: clang
+          - toolset: clang
+            compiler: clang++-10
             version: "10"
             cppstd: "11 14 17 20"
             install: clang-10
@@ -58,16 +65,14 @@ jobs:
             for cppstd in ${{matrix.cppstd}}
             do
               conan install . -if=build -b=missing \
-                -s compiler=${{matrix.compiler}} \
+                -s compiler=${{matrix.toolset}} \
                 -s compiler.version=${{matrix.version}} \
                 -s compiler.cppstd=${cppstd} \
                 -s compiler.libcxx=libstdc++11 \
-                -e CC=${{matrix.compiler}}-${{matrix.version}} \
-                -e CXX=${{matrix.install}}
+                -e CXX=${{matrix.compiler}}
               cmake -Bbuild -H$GITHUB_WORKSPACE \
                 -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_C_COMPILER=${{matrix.compiler}}-${{matrix.version}} \
-                -DCMAKE_CXX_COMPILER=${{matrix.compiler}}-${{matrix.version}} \
+                -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
                 -DCMAKE_CXX_STANDARD=${cppstd} \
                 -DCMAKE_CXX_STANDARD_REQUIRED=ON \
                 -DCMAKE_CXX_EXTENSIONS=OFF \
