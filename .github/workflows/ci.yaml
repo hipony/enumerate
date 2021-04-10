@@ -38,11 +38,6 @@ jobs:
             os: ubuntu-16.04
             install: clang-5.0
           - compiler: clang
-            version: "7.0"
-            cppstd: "11 14 17"
-            os: ubuntu-18.04
-            install: clang-7
-          - compiler: clang
             version: "10"
             cppstd: "11 14 17 20"
             os: ubuntu-20.04
@@ -55,7 +50,7 @@ jobs:
 
         - name: Install Packages
           run: |
-            sudo apt install ${{matrix.install}}
+            sudo apt install ninja ${{matrix.install}}
             pip install conan
 
         - name: Setup Toolchains
