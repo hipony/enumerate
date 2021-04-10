@@ -74,8 +74,6 @@ jobs:
             set(CMAKE_CXX_STANDARD ${cppstd})
             set(CMAKE_CXX_STANDARD_REQUIRED ON)
             set(CMAKE_CXX_EXTENSIONS OFF)
-
-            add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
             END
             done
 
@@ -83,8 +81,20 @@ jobs:
           run: |
             for cppstd in ${{matrix.cppstd}}
             do
-              conan install . -if=build -b=missing -pr=conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
-              cd build
-              cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${cppstd}
-              cmake --build .
+              conan install . -if=build -b=missing \
+                -s compiler=${{matrix.compiler}} \
+                -s compiler.version=${{matrix.version}} \
+                -s compiler.cppstd=${cppstd} \
+                -s compiler.libcxx=libstdc++11 \
+                -e CC=${{matrix.compiler}}-${{matrix.version}} \
+                -e CXX=${{matrix.install}}
+              cmake -Bbuild -H$GITHUB_WORKSPACE \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_C_COMPILER=${{matrix.compiler}}-${{matrix.version}} \
+                -DCMAKE_CXX_COMPILER=${{matrix.compiler}}-${{matrix.version}} \
+                -DCMAKE_CXX_STANDARD=${cppstd} \
+                -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+                -DCMAKE_CXX_EXTENSIONS=OFF \
+                -G Ninja
+              cmake --build build
             done
