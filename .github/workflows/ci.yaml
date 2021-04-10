@@ -70,6 +70,9 @@ jobs:
             compiler.version=${{matrix.version}}
             compiler.cppstd=${cppstd}
             compiler.libcxx=libstdc++11
+            [env]
+            CC=${{matrix.compiler}}-${{matrix.version}}
+            CXX=${{matrix.compiler}}-${{matrix.version}}
             END
 
             mkdir -p cmake/toolchains/
