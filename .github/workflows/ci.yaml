@@ -50,7 +50,7 @@ jobs:
 
         - name: Install Packages
           run: |
-            sudo apt install ninja ${{matrix.install}}
+            sudo apt install ninja-build ${{matrix.install}}
             pip install conan
 
         - name: Setup Toolchains
