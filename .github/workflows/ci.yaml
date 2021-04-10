@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+env:
+    BUILD_TYPE: Release
+
 jobs:
   ubuntu:
     strategy:
