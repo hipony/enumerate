@@ -8,7 +8,7 @@ An adapter for "range-like" things whose value type is a struct with `index` and
 
 It doesn't resemble the `views::enumerate` proposal since it's not based on C++20 ranges concepts.
 
-Supports containers, variadic packs, pointer and size pairs, c arrays.
+Supports constexpr, variadic packs, containers, pointer and size pairs, c arrays.
 
 ## Performance
 
@@ -16,7 +16,47 @@ Supports containers, variadic packs, pointer and size pairs, c arrays.
 
 ## Examples
 
-With C++17 structured bindings we can bind member variables to convenient aliases.
+* With C++17 structured bindings we can bind member variables to convenient aliases.
+* If you pass a constexpr container - you'll be able to evaluate it in a constant expression.
+
+### Constexpr
+
+```cpp
+// C++20
+#include <hipony/enumerate.hpp>
+
+#include <array>
+
+consteval auto get() -> int
+{
+    using hipony::enumerate;
+    auto const array = std::array{0, 1, 2, 3, 4};
+    for (auto&& [index, value] : enumerate(array, 3)) {
+        if (index == 4) {
+            return value;
+        }
+    }
+    return 0;
+}
+```
+
+```cpp
+// C++11
+#include <hipony/enumerate.hpp>
+
+struct function_object {
+    constexpr auto operator()() const -> int
+    {
+        using hipony::enumerate;
+        for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
+            if (item.index == 4) {
+                return item.value;
+            }
+        }
+        return 0;
+    }
+};
+```
 
 ### Variadic Packs
 
