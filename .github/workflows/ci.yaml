@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - feature/**
 
 jobs:
   posix:
@@ -62,23 +61,23 @@ jobs:
           run: |
             for cppstd in ${{matrix.cppstd}}
             do
-              tee -a conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} << END
-              include(default)
-              [settings]
-              compiler=${{matrix.compiler}}
-              compiler.version=${{matrix.version}}
-              compiler.cppstd=${{matrix.cppstd}}
-              compiler.libcxx=libstdc++11
-              END
+            tee -a conan/profiles/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} <<END
+            include(default)
+            [settings]
+            compiler=${{matrix.compiler}}
+            compiler.version=${{matrix.version}}
+            compiler.cppstd=${{matrix.cppstd}}
+            compiler.libcxx=libstdc++11
+            END
 
-              tee -a cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} << END
-              set(CMAKE_C_COMPILER ${{matrix.compiler}}-${{matrix.version}})
-              set(CMAKE_CXX_COMPILER ${{matrix.compiler}}-${{matrix.version}})
+            tee -a cmake/toolchains/${{matrix.compiler}}-${{matrix.version}}-${{matrix.cppstd}} <<END
+            set(CMAKE_C_COMPILER ${{matrix.compiler}}-${{matrix.version}})
+            set(CMAKE_CXX_COMPILER ${{matrix.compiler}}-${{matrix.version}})
 
-              set(CMAKE_CXX_STANDARD ${{matrix.cppstd}})
-              set(CMAKE_CXX_STANDARD_REQUIRED ON)
-              set(CMAKE_CXX_EXTENSIONS OFF)
-              END
+            set(CMAKE_CXX_STANDARD ${{matrix.cppstd}})
+            set(CMAKE_CXX_STANDARD_REQUIRED ON)
+            set(CMAKE_CXX_EXTENSIONS OFF)
+            END
             done
 
         - name: Build
