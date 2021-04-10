@@ -7,7 +7,7 @@ if(BUILD_TESTING)
     target_link_libraries(enumerate-tests
         PRIVATE
             hipony::enumerate
-            Catch2::Catch2 Catch2::Catch2WithMain
+            Catch2::Catch2
     )
     add_test(NAME enumerate-tests COMMAND enumerate-tests)
 endif()
