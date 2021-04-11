@@ -16,17 +16,91 @@
 
 namespace hipony {
 
+namespace {
+
+template<typename T, typename O>
+constexpr void assert_type()
+{
+    static_assert(std::is_same<T, O>::value, "Incorrect type propagation");
+}
+
+} // namespace
+
 TEST_CASE("variadic pack", "[enumerate]")
 {
-    auto i = 0;
-    for (auto&& item : enumerate(0, 1, 2, 3, 4)) {
-        static_assert(
-            std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+    auto counter = 0;
+    SECTION("for-range")
+    {
+        for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
+            assert_type<int&, decltype(item.value)>();
 
-        REQUIRE(i == item.index);
-        REQUIRE(i == item.value);
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("each")
+    {
+        enumerate(0, 10, 20, 30, 40).each([&](std::size_t index, int& value) {
+            REQUIRE(index * 10 == value);
+            ++counter;
+        });
+        REQUIRE(counter == 5);
+    }
+}
 
-        ++i;
+TEST_CASE("tuple", "[enumerate]")
+{
+    auto counter = std::size_t{0};
+    SECTION("exact size")
+    {
+        enumerate(std::make_tuple(0, 10, 20, 30, 40)).each([&](std::size_t index, int& value) {
+            REQUIRE(index * 10 == value);
+            ++counter;
+        });
+        REQUIRE(counter == 5);
+    }
+    SECTION("more")
+    {
+        enumerate(std::make_tuple(0, 10, 20, 30, 40), 10).each([&](std::size_t index, int& value) {
+            REQUIRE(index * 10 == value);
+            ++counter;
+        });
+        REQUIRE(counter == 5);
+    }
+    SECTION("less")
+    {
+        enumerate(std::make_tuple(0, 10, 20, 30, 40), 3).each([&](std::size_t index, int& value) {
+            REQUIRE(index * 10 == value);
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("lvalue")
+    {
+        auto tuple = std::make_tuple(0, 10, 20, 30, 40);
+        enumerate(tuple).each([&](std::size_t index, int& value) {
+            REQUIRE(index * 10 == value);
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("const propagation")
+    {
+        struct const_function_object {
+            std::size_t& counter;
+
+            void operator()(std::size_t index, int& value)
+            {}
+            void operator()(std::size_t index, int const& value)
+            {
+                REQUIRE(index * 10 == value);
+                ++counter;
+            }
+        };
+        auto const tuple = std::make_tuple(0, 10, 20, 30, 40);
+        enumerate(tuple).each(const_function_object{counter});
+        REQUIRE(counter == 5);
     }
 }
 
