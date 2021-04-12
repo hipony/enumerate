@@ -342,10 +342,10 @@ struct wrapper {
     }
 };
 
-template<template<typename...> class T, typename... U>
+template<typename Tuple, typename... U>
 struct tuple_wrapper {
-    using tuple_type = T<U...>;
-    using size_type  = decltype(std::tuple_size<tuple_type>::value);
+    using tuple_type = Tuple;
+    using size_type  = decltype(std::tuple_size<detail::remove_cvref_t<tuple_type>>::value);
 
     tuple_type data;
     size_type  size;
@@ -376,7 +376,27 @@ struct enumerate_traits;
 
 template<template<typename...> class T, typename... Args>
 struct enumerate_traits<T<Args...>> {
-    using wrapper = detail::tuple_wrapper<T, Args...>;
+    using wrapper = tuple_wrapper<T<Args...>, Args...>;
+};
+
+template<template<typename...> class T, typename... Args>
+struct enumerate_traits<T<Args...>&> {
+    using wrapper = tuple_wrapper<T<Args...>&, Args...>;
+};
+
+template<template<typename...> class T, typename... Args>
+struct enumerate_traits<T<Args...> const&> {
+    using wrapper = tuple_wrapper<T<Args...> const&, Args...>;
+};
+
+template<template<typename...> class T, typename... Args>
+struct enumerate_traits<T<Args...>&&> {
+    using wrapper = tuple_wrapper<T<Args...>&&, Args...>;
+};
+
+template<template<typename...> class T, typename... Args>
+struct enumerate_traits<T<Args...> const&&> {
+    using wrapper = tuple_wrapper<T<Args...> const&&, Args...>;
 };
 
 } // namespace detail
@@ -384,7 +404,7 @@ struct enumerate_traits<T<Args...>> {
 template<typename Container>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(Container&& c) noexcept ->
     typename std::enable_if<
-        detail::is_container<detail::remove_cvref_t<Container>>::value,
+        detail::is_container<detail::remove_cvref_t<decltype(c)>>::value,
         detail::wrapper<decltype(c)>>::type
 {
     return {static_cast<decltype(c)&&>(c), c.size()};
@@ -393,17 +413,36 @@ HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(Container&&
 template<typename Container>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
 enumerate(Container&& c, std::size_t n) noexcept -> typename std::enable_if<
-    detail::is_container<detail::remove_cvref_t<Container>>::value,
+    detail::is_container<detail::remove_cvref_t<decltype(c)>>::value,
     detail::wrapper<decltype(c)>>::type
 {
     return {static_cast<decltype(c)&&>(c), n};
 }
 
+template<typename Tuple>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(Tuple&& t) noexcept ->
+    typename std::enable_if<
+        detail::is_tuple<detail::remove_cvref_t<decltype(t)>>::value
+            && !detail::is_container<detail::remove_cvref_t<decltype(t)>>::value,
+        typename detail::enumerate_traits<Tuple>::wrapper>::type
+{
+    return {
+        static_cast<decltype(t)&&>(t), std::tuple_size<detail::remove_cvref_t<decltype(t)>>::value};
+}
+
+template<typename Tuple>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+enumerate(Tuple&& t, std::size_t n) noexcept -> typename std::enable_if<
+    detail::is_tuple<detail::remove_cvref_t<decltype(t)>>::value
+        && !detail::is_container<detail::remove_cvref_t<decltype(t)>>::value,
+    typename detail::enumerate_traits<Tuple>::wrapper>::type
+{
+    return {static_cast<decltype(t)&&>(t), n};
+}
+
 template<typename T>
-HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T ptr, std::size_t n) noexcept
-    -> typename std::enable_if<
-        std::is_pointer<detail::remove_cvref_t<T>>::value,
-        detail::wrapper<detail::span<typename std::remove_pointer<T>::type>>>::type
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+enumerate(T* const& ptr, std::size_t n) noexcept -> detail::wrapper<detail::span<T>>
 {
     return {{ptr, n}, n};
 }
@@ -422,34 +461,24 @@ enumerate(T (&arr)[N], std::size_t n) noexcept -> detail::wrapper<detail::span<T
     return {{arr, N}, n};
 }
 
+// template<typename T, typename... Args>
+// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+// enumerate(T&& first, Args&&... args) noexcept -> typename std::enable_if<
+//     !detail::is_same<detail::remove_cvref_t<T>, detail::remove_cvref_t<Args>...>()
+//         && !detail::is_tuple<detail::remove_cvref_t<T>>::value,
+//     detail::tuple_wrapper<std::tuple<T, Args...>>>::type
+// {
+//     return {static_cast<T&&>(first), static_cast<Args&&>(args)...};
+// }
+
 template<typename T, typename... Args>
-HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T first, Args... args) noexcept
-    -> typename std::enable_if<
-        detail::is_same<T, Args...>() && !detail::is_tuple<detail::remove_cvref_t<T>>::value,
-        detail::wrapper<detail::array<T, sizeof...(Args) + 1>>>::type
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+enumerate(T&& first, Args&&... args) noexcept -> typename std::enable_if<
+    detail::is_same<detail::remove_cvref_t<T>, detail::remove_cvref_t<Args>...>()
+        && !detail::is_tuple<detail::remove_cvref_t<T>>::value,
+    detail::wrapper<detail::array<T, sizeof...(Args) + 1>>>::type
 {
     return {{static_cast<T&&>(first), static_cast<Args&&>(args)...}, sizeof...(Args) + 1};
-}
-
-template<typename T>
-HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T&& t) noexcept ->
-    typename std::enable_if<
-        detail::is_tuple<detail::remove_cvref_t<decltype(t)>>::value
-            && !detail::is_container<detail::remove_cvref_t<decltype(t)>>::value,
-        typename detail::enumerate_traits<T>::wrapper>::type
-{
-    return {
-        static_cast<decltype(t)&&>(t), std::tuple_size<detail::remove_cvref_t<decltype(t)>>::value};
-}
-
-template<typename T>
-HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T&& t, std::size_t n) noexcept
-    -> typename std::enable_if<
-        detail::is_tuple<detail::remove_cvref_t<decltype(t)>>::value
-            && !detail::is_container<detail::remove_cvref_t<decltype(t)>>::value,
-        typename detail::enumerate_traits<T>::wrapper>::type
-{
-    return {static_cast<decltype(t)&&>(t), n};
 }
 
 } // namespace hipony_enumerate

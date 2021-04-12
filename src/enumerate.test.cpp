@@ -83,7 +83,7 @@ TEST_CASE("tuple", "[enumerate]")
             REQUIRE(index * 10 == value);
             ++counter;
         });
-        REQUIRE(counter == 3);
+        REQUIRE(counter == 5);
     }
     SECTION("const propagation")
     {
@@ -106,60 +106,188 @@ TEST_CASE("tuple", "[enumerate]")
 
 TEST_CASE("c-array", "[enumerate]")
 {
-    auto const size            = 5;
-    int        container[size] = {0, 1, 2, 3, 4};
+    auto counter = std::size_t{0};
+    SECTION("exact size")
+    {
+        int container[] = {0, 10, 20, 30, 40};
+        for (auto&& item : enumerate(container)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-    auto i = 0;
-    for (auto&& item : enumerate(container)) {
-        static_assert(
-            std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&container[item.index] == &item.value);
 
-        REQUIRE(i == item.index);
-        REQUIRE(i == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("more")
+    {
+        int container[] = {0, 10, 20, 30, 40};
+        for (auto&& item : enumerate(container, 10)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        auto const new_value = static_cast<int>(size - item.index);
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&container[item.index] == &item.value);
 
-        item.value = new_value;
-        REQUIRE(container[item.index] == new_value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("less")
+    {
+        int container[] = {0, 10, 20, 30, 40};
+        for (auto&& item : enumerate(container, 3)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        ++i;
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&container[item.index] == &item.value);
+
+            ++counter;
+        }
+        REQUIRE(counter == 3);
     }
 }
 
 TEST_CASE("array", "[enumerate]")
 {
-    auto const container = std::array<double, 5>({0., 1., 2., 3., 4.});
+    auto counter = std::size_t{0};
+    SECTION("exact size")
+    {
+        for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}))) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-    auto i = 0;
-    for (auto&& item : enumerate(container)) {
-        static_assert(
-            std::is_same<double const&, decltype(item.value)>::value, "Incorrect type propagation");
+            REQUIRE(item.index * 10 == item.value);
 
-        REQUIRE(i == item.index);
-        REQUIRE(i == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("more")
+    {
+        for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}), 10)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        ++i;
+            REQUIRE(item.index * 10 == item.value);
+
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("less")
+    {
+        for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}), 3)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+
+            REQUIRE(item.index * 10 == item.value);
+
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+    SECTION("lvalue")
+    {
+        auto array = std::array<int, 5>({0, 10, 20, 30, 40});
+        for (auto&& item : enumerate(array)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&array[item.index] == &item.value);
+
+            ++counter;
+        };
+        REQUIRE(counter == 5);
+    }
+    SECTION("const propagation")
+    {
+        auto const array = std::array<int, 5>({0, 10, 20, 30, 40});
+        for (auto&& item : enumerate(array)) {
+            static_assert(
+                std::is_same<int const&, decltype(item.value)>::value,
+                "Incorrect type propagation");
+
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&array[item.index] == &item.value);
+
+            ++counter;
+        };
+        REQUIRE(counter == 5);
     }
 }
 
 TEST_CASE("vector", "[enumerate]")
 {
-    auto container = std::vector<double>({0., 1., 2., 3., 4.});
+    auto counter = std::size_t{0};
+    SECTION("exact size")
+    {
+        for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}))) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-    auto i = 0;
-    for (auto&& item : enumerate(container)) {
-        static_assert(
-            std::is_same<double&, decltype(item.value)>::value, "Incorrect type propagation");
+            REQUIRE(item.index * 10 == item.value);
 
-        REQUIRE(i == item.index);
-        REQUIRE(i == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("more")
+    {
+        for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}), 10)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        auto const new_value = static_cast<int>(container.size() - item.index);
+            REQUIRE(item.index * 10 == item.value);
 
-        item.value = new_value;
-        REQUIRE(container[item.index] == new_value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("less")
+    {
+        for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}), 3)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        ++i;
+            REQUIRE(item.index * 10 == item.value);
+
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+    SECTION("lvalue")
+    {
+        auto vector = std::vector<int>({0, 10, 20, 30, 40});
+        for (auto&& item : enumerate(vector)) {
+            static_assert(
+                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&vector[item.index] == &item.value);
+
+            ++counter;
+        };
+        REQUIRE(counter == 5);
+    }
+    SECTION("const propagation")
+    {
+        auto const vector = std::vector<int>({0, 10, 20, 30, 40});
+        for (auto&& item : enumerate(vector)) {
+            static_assert(
+                std::is_same<int const&, decltype(item.value)>::value,
+                "Incorrect type propagation");
+
+            REQUIRE(item.index * 10 == item.value);
+            REQUIRE(&vector[item.index] == &item.value);
+
+            ++counter;
+        };
+        REQUIRE(counter == 5);
     }
 }
 
@@ -182,22 +310,71 @@ TEST_CASE("string literal", "[enumerate]")
 
 TEST_CASE("string", "[enumerate]")
 {
-    auto container = std::string("01234");
+    auto counter = std::size_t{0};
+    SECTION("exact size")
+    {
+        for (auto&& item : enumerate(std::string("01234"))) {
+            static_assert(
+                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
 
-    auto i = 0;
-    for (auto&& item : enumerate(container)) {
-        static_assert(
-            std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
+            REQUIRE(item.index + '0' == item.value);
 
-        REQUIRE(i == item.index);
-        REQUIRE('0' + i == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("more")
+    {
+        for (auto&& item : enumerate(std::string("01234"), 10)) {
+            static_assert(
+                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        auto const new_value = static_cast<char>('0' + container.size() - item.index);
+            REQUIRE(item.index + '0' == item.value);
 
-        item.value = new_value;
-        REQUIRE(container[item.index] == new_value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("less")
+    {
+        for (auto&& item : enumerate(std::string("01234"), 3)) {
+            static_assert(
+                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
 
-        ++i;
+            REQUIRE(item.index + '0' == item.value);
+
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+    SECTION("lvalue")
+    {
+        auto vector = std::string("01234");
+        for (auto&& item : enumerate(vector)) {
+            static_assert(
+                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
+
+            REQUIRE(item.index + '0' == item.value);
+            REQUIRE(&vector[item.index] == &item.value);
+
+            ++counter;
+        };
+        REQUIRE(counter == 5);
+    }
+    SECTION("const propagation")
+    {
+        auto const vector = std::string("01234");
+        for (auto&& item : enumerate(vector)) {
+            static_assert(
+                std::is_same<char const&, decltype(item.value)>::value,
+                "Incorrect type propagation");
+
+            REQUIRE(item.index + '0' == item.value);
+            REQUIRE(&vector[item.index] == &item.value);
+
+            ++counter;
+        };
+        REQUIRE(counter == 5);
     }
 }
 
@@ -233,62 +410,6 @@ TEST_CASE("unordered_map", "[enumerate]")
         (void)item.index;
         (void)item.value;
     }
-}
-
-TEST_CASE("array constraint less than size", "[enumerate]")
-{
-    int        container[] = {0, 1, 2, 3, 4};
-    auto const size        = 3;
-
-    auto i = 0;
-    for (auto&& item : enumerate(container, size)) {
-        static_assert(
-            std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-        ++i;
-    }
-    REQUIRE(i == size);
-}
-
-TEST_CASE("array constraint more than size", "[enumerate]")
-{
-    int const  container[] = {0, 1, 2, 3, 4};
-    auto const size        = 8;
-
-    auto i = 0;
-    for (auto&& item : enumerate(container, size)) {
-        static_assert(
-            std::is_same<int const&, decltype(item.value)>::value, "Incorrect type propagation");
-        ++i;
-    }
-    REQUIRE(i == (sizeof(container) / sizeof(int)));
-}
-
-TEST_CASE("container constraint less than size", "[enumerate]")
-{
-    auto       container = std::vector<double>({0., 1., 2., 3., 4.});
-    auto const size      = 3;
-
-    auto i = 0;
-    for (auto&& item : enumerate(container, size)) {
-        static_assert(
-            std::is_same<double&, decltype(item.value)>::value, "Incorrect type propagation");
-        ++i;
-    }
-    REQUIRE(i == size);
-}
-
-TEST_CASE("container constraint more than size", "[enumerate]")
-{
-    auto       container = std::vector<double>({0., 1., 2., 3., 4.});
-    auto const size      = 8;
-
-    auto i = 0;
-    for (auto&& item : enumerate(container, size)) {
-        static_assert(
-            std::is_same<double&, decltype(item.value)>::value, "Incorrect type propagation");
-        ++i;
-    }
-    REQUIRE(i == container.size());
 }
 
 #if HIPONY_ENUMERATE_HAS_CONSTEXPR
