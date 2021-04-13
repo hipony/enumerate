@@ -72,7 +72,7 @@ template<typename... Ts>
 using make_void_t = typename detail::make_void<Ts...>::type;
 
 template<typename T>
-using remove_cvref_t = typename std::remove_reference<typename std::remove_cv<T>::type>::type;
+using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 
 template<typename T>
 struct remove_rvalue_reference {
