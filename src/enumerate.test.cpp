@@ -19,9 +19,10 @@ namespace hipony {
 namespace {
 
 template<typename T, typename O>
-constexpr void assert_type()
+constexpr int assert_type()
 {
     static_assert(std::is_same<T, O>::value, "Incorrect type propagation");
+    return 0;
 }
 
 } // namespace
