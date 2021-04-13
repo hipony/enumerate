@@ -68,8 +68,29 @@ struct make_void {
     using type = void;
 };
 
+template<typename... Ts>
+using make_void_t = typename detail::make_void<Ts...>::type;
+
 template<typename T>
 using remove_cvref_t = typename std::remove_reference<typename std::remove_cv<T>::type>::type;
+
+template<typename T>
+struct remove_rvalue_reference {
+    using type = T;
+};
+
+template<typename T>
+struct remove_rvalue_reference<T&> {
+    using type = T&;
+};
+
+template<typename T>
+struct remove_rvalue_reference<T&&> {
+    using type = T;
+};
+
+template<typename T>
+using remove_rref_t = typename remove_rvalue_reference<T>::type;
 
 template<typename T, typename = void>
 struct is_container : std::false_type {};
@@ -305,24 +326,26 @@ public:
 
 template<typename Container>
 struct wrapper {
-    using size_type = typename detail::remove_cvref_t<Container>::size_type;
+    using value_type = typename detail::remove_rref_t<Container>;
+    using size_type  = typename detail::remove_cvref_t<Container>::size_type;
 
-    Container data;
-    size_type size;
+    value_type data;
+    size_type  size;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> iterator<Container>
+        -> iterator<value_type>
     {
         return {data.begin()};
     }
 
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept -> iterator<Container>
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<value_type>
     {
         return {data.size() < size ? data.end() : detail::next(data.begin(), size)};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> iterator<Container>
+        -> iterator<value_type>
     {
         return {data.begin()};
     }
@@ -344,7 +367,7 @@ struct wrapper {
 
 template<typename Tuple, typename... U>
 struct tuple_wrapper {
-    using tuple_type = Tuple;
+    using tuple_type = detail::remove_rref_t<Tuple>;
     using size_type  = decltype(std::tuple_size<detail::remove_cvref_t<tuple_type>>::value);
 
     tuple_type data;
@@ -405,7 +428,7 @@ template<typename Container>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(Container&& c) noexcept ->
     typename std::enable_if<
         detail::is_container<detail::remove_cvref_t<decltype(c)>>::value,
-        detail::wrapper<decltype(c)>>::type
+        detail::wrapper<detail::remove_rref_t<decltype(c)>>>::type
 {
     return {static_cast<decltype(c)&&>(c), c.size()};
 }
@@ -414,7 +437,7 @@ template<typename Container>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
 enumerate(Container&& c, std::size_t n) noexcept -> typename std::enable_if<
     detail::is_container<detail::remove_cvref_t<decltype(c)>>::value,
-    detail::wrapper<decltype(c)>>::type
+    detail::wrapper<detail::remove_rref_t<decltype(c)>>>::type
 {
     return {static_cast<decltype(c)&&>(c), n};
 }
