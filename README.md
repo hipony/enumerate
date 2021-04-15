@@ -8,16 +8,19 @@ An adapter for "range-like" things whose value type is a struct with `index` and
 
 It doesn't resemble the `views::enumerate` proposal since it's not based on C++20 ranges concepts.
 
-Supports constexpr, variadic packs, containers, pointer and size pairs, c arrays.
+Supports constexpr, tuples, variadic packs, containers, pointer and size pairs, c arrays.
 
 ## Performance
 
 [Compiler Explorer](https://godbolt.org/z/TGM5Wfaeh)
 
-## Examples
+## Notes
 
 * With C++17 structured bindings we can bind member variables to convenient aliases
 * With C++14 we can use `enumerate` in constexpr context
+  * On MSVC requires at least v19.15 for that
+
+## Examples
 
 ### Constexpr
 
