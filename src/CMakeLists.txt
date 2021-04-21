@@ -3,7 +3,10 @@ if(BUILD_TESTING)
 
     find_package(Catch2 CONFIG REQUIRED)
 
-    add_executable(enumerate-tests enumerate.test.cpp)
+    add_executable(enumerate-tests
+        enumerate.test.cpp
+        traits.test.cpp
+    )
     target_link_libraries(enumerate-tests
         PRIVATE
             hipony::enumerate
