@@ -635,11 +635,26 @@ template<typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T&& t, Ts&&... ts) noexcept
     -> detail::dispatch_t<
         detail::tag_t<
-            detail::size_t<detail::remove_cvref_t<T>>,
+            detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
             detail::remove_cvref_t<T>,
             detail::void_t<>,
             detail::remove_cvref_t<Ts>...>,
-        detail::size_t<detail::remove_cvref_t<T>>,
+        detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
+        T,
+        Ts...>
+{
+    return {static_cast<T&&>(t), static_cast<Ts&&>(ts)...};
+}
+
+template<typename Size, typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate_as(T&& t, Ts&&... ts) noexcept
+    -> detail::dispatch_t<
+        detail::tag_t<
+            detail::size_t<Size, detail::remove_cvref_t<T>>,
+            detail::remove_cvref_t<T>,
+            detail::void_t<>,
+            detail::remove_cvref_t<Ts>...>,
+        detail::size_t<Size, detail::remove_cvref_t<T>>,
         T,
         Ts...>
 {
@@ -649,7 +664,7 @@ HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T&& t, Ts&&
 } // namespace hipony_enumerate
 
 using hipony_enumerate::enumerate;
-// using hipony_enumerate::enumerate_as;
+using hipony_enumerate::enumerate_as;
 
 } // namespace HIPONY_ENUMERATE_NAMESPACE
 
