@@ -556,13 +556,13 @@ struct wrapper {
     }
 };
 
-template<typename T, typename U = T>
+template<typename Size, typename T, typename U = T>
 struct tuple_wrapper;
 
-template<typename T, template<typename...> class Tuple, typename... Ts>
-struct tuple_wrapper<T, Tuple<Ts...>> {
+template<typename Size, typename T, template<typename...> class Tuple, typename... Ts>
+struct tuple_wrapper<Size, T, Tuple<Ts...>> {
     using tuple_type = typename detail::remove_rref_t<T>;
-    using size_type  = decltype(std::tuple_size<detail::remove_cvref_t<T>>::value);
+    using size_type  = Size;
 
     // size_type  size;
     tuple_type data;
@@ -593,7 +593,7 @@ struct dispatch;
 
 template<typename Size, typename... Ts>
 struct dispatch<detail::variadic_tag_t, Size, Ts...> {
-    using type = detail::tuple_wrapper<std::tuple<detail::remove_rref_t<Ts>...>>;
+    using type = detail::tuple_wrapper<Size, std::tuple<detail::remove_rref_t<Ts>...>>;
 };
 
 template<typename Size, typename T, typename... Ts>
@@ -608,7 +608,7 @@ struct dispatch<detail::container_tag_t, Size, T> {
 
 template<typename Size, typename T>
 struct dispatch<detail::tuple_tag_t, Size, T> {
-    using type = detail::tuple_wrapper<detail::remove_rref_t<T>, detail::remove_cvref_t<T>>;
+    using type = detail::tuple_wrapper<Size, detail::remove_rref_t<T>, detail::remove_cvref_t<T>>;
 };
 
 template<typename Size, typename T>
