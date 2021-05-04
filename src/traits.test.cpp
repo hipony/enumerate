@@ -16,6 +16,8 @@
 namespace HIPONY_ENUMERATE_NAMESPACE {
 namespace hipony_enumerate {
 
+// Traits
+
 static_assert(std::is_same<detail::remove_cvref_t<int>, int>::value, "");
 static_assert(std::is_same<detail::remove_cvref_t<int&>, int>::value, "");
 static_assert(std::is_same<detail::remove_cvref_t<int&&>, int>::value, "");
@@ -53,6 +55,8 @@ static_assert(!detail::is_tuple<std::string>::value, "");
 static_assert(detail::is_tuple<std::tuple<int, double>>::value, "");
 static_assert(detail::is_tuple<std::pair<int, double>>::value, "");
 
+// Size inference
+
 static_assert(std::is_same<detail::size_t<void, std::vector<int>>, std::size_t>::value, "");
 static_assert(std::is_same<detail::size_t<void, std::array<int, 4>>, std::size_t>::value, "");
 static_assert(std::is_same<detail::size_t<void, std::string>, std::size_t>::value, "");
@@ -79,6 +83,8 @@ struct user_container {
 
 static_assert(std::is_same<detail::size_t<void, user_container>, int>::value, "");
 static_assert(std::is_same<detail::size_t<std::size_t, user_container>, std::size_t>::value, "");
+
+// Tag inference
 
 static_assert(std::is_same<detail::tag_t<std::size_t, int>, detail::variadic_tag_t>::value, "");
 static_assert(
@@ -137,6 +143,66 @@ static_assert(
     "");
 
 static_assert(std::is_same<detail::tag_t<std::size_t, int[3]>, detail::array_tag_t>::value, "");
+static_assert(
+    std::is_same<detail::tag_t<std::size_t, int[3], void, std::size_t>, detail::array_tag_t>::value,
+    "");
+
+// Returned type
+
+static_assert(detail::is_container<decltype(enumerate(0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_container<decltype(enumerate(0, 1., "string"))>::value, "");
+static_assert(
+    detail::is_container<decltype(enumerate(std::declval<std::vector<int>>()))>::value,
+    "");
+static_assert(
+    detail::is_container<decltype(enumerate(std::declval<std::array<int, 3>>()))>::value,
+    "");
+static_assert(
+    !detail::is_container<decltype(enumerate(std::declval<std::tuple<int, int>>()))>::value,
+    "");
+static_assert(
+    !detail::is_container<decltype(enumerate(std::declval<std::pair<int, int>>()))>::value,
+    "");
+static_assert(
+    detail::is_container<
+        decltype(enumerate(std::declval<int*>(), std::declval<std::size_t>()))>::value,
+    "");
+static_assert(detail::is_container<decltype(enumerate("123456"))>::value, "");
+static_assert(detail::is_container<decltype(enumerate("123456", std::declval<int>()))>::value, "");
+static_assert(detail::is_container<decltype(enumerate(std::declval<int (&)[5]>()))>::value, "");
+static_assert(
+    detail::is_container<decltype(enumerate(std::declval<int (&)[5]>(), std::declval<int>()))>::value,
+    "");
+
+static_assert(detail::is_container<decltype(enumerate_as<int>(0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_container<decltype(enumerate_as<int>(0, 1., "string"))>::value, "");
+static_assert(
+    detail::is_container<decltype(enumerate_as<int>(std::declval<std::vector<int>>()))>::value,
+    "");
+static_assert(
+    detail::is_container<decltype(enumerate_as<int>(std::declval<std::array<int, 3>>()))>::value,
+    "");
+static_assert(
+    !detail::is_container<decltype(enumerate_as<int>(std::declval<std::tuple<int, int>>()))>::value,
+    "");
+static_assert(
+    !detail::is_container<decltype(enumerate_as<int>(std::declval<std::pair<int, int>>()))>::value,
+    "");
+static_assert(
+    detail::is_container<
+        decltype(enumerate_as<int>(std::declval<int*>(), std::declval<std::size_t>()))>::value,
+    "");
+static_assert(detail::is_container<decltype(enumerate_as<int>("123456"))>::value, "");
+static_assert(
+    detail::is_container<decltype(enumerate_as<int>("123456", std::declval<int>()))>::value,
+    "");
+static_assert(
+    detail::is_container<decltype(enumerate_as<int>(std::declval<int (&)[5]>()))>::value,
+    "");
+static_assert(
+    detail::is_container<decltype(
+        enumerate_as<int>(std::declval<int (&)[5]>(), std::declval<std::size_t>()))>::value,
+    "");
 
 } // namespace hipony_enumerate
 } // namespace HIPONY_ENUMERATE_NAMESPACE

@@ -25,6 +25,14 @@ constexpr int assert_type()
 
 } // namespace
 
+struct variadic_tag_t {};
+struct variadic_array_tag_t {};
+struct container_tag_t {};
+struct tuple_tag_t {};
+struct pointer_tag_t {};
+struct string_tag_t {};
+struct array_tag_t {};
+
 TEST_CASE("variadic pack", "[enumerate]")
 {
     auto counter = 0;
