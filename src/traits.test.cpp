@@ -171,10 +171,13 @@ static_assert(
         decltype(enumerate(std::declval<int*>(), std::declval<std::size_t>()))>::value,
     "");
 static_assert(detail::is_container<decltype(enumerate("123456"))>::value, "");
-static_assert(detail::is_container<decltype(enumerate("123456", std::declval<int>()))>::value, "");
+static_assert(
+    detail::is_container<decltype(enumerate("123456", std::declval<std::size_t>()))>::value,
+    "");
 static_assert(detail::is_container<decltype(enumerate(std::declval<int (&)[5]>()))>::value, "");
 static_assert(
-    detail::is_container<decltype(enumerate(std::declval<int (&)[5]>(), std::declval<int>()))>::value,
+    detail::is_container<
+        decltype(enumerate(std::declval<int (&)[5]>(), std::declval<std::size_t>()))>::value,
     "");
 
 static_assert(detail::is_container<decltype(enumerate_as<int>(0, 1, 2, 3, 4))>::value, "");
@@ -193,7 +196,7 @@ static_assert(
     "");
 static_assert(
     detail::is_container<
-        decltype(enumerate_as<int>(std::declval<int*>(), std::declval<std::size_t>()))>::value,
+        decltype(enumerate_as<int>(std::declval<int*>(), std::declval<int>()))>::value,
     "");
 static_assert(detail::is_container<decltype(enumerate_as<int>("123456"))>::value, "");
 static_assert(
@@ -203,8 +206,8 @@ static_assert(
     detail::is_container<decltype(enumerate_as<int>(std::declval<int (&)[5]>()))>::value,
     "");
 static_assert(
-    detail::is_container<decltype(
-        enumerate_as<int>(std::declval<int (&)[5]>(), std::declval<std::size_t>()))>::value,
+    detail::is_container<
+        decltype(enumerate_as<int>(std::declval<int (&)[5]>(), std::declval<int>()))>::value,
     "");
 
 } // namespace hipony_enumerate
