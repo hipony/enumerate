@@ -8,408 +8,487 @@
 #include <catch2/catch.hpp>
 
 #include <array>
-#include <map>
 #include <string>
 #include <type_traits>
-#include <unordered_map>
 #include <vector>
 
-namespace hipony {
+namespace HIPONY_ENUMERATE_NAMESPACE {
 
 namespace {
 
-template<typename T, typename O>
-constexpr int assert_type()
+template<typename T, typename U>
+constexpr auto assert_same() -> int
 {
-    static_assert(std::is_same<T, O>::value, "Incorrect type propagation");
+    static_assert(std::is_same<T, U>::value, "Types are not the same");
     return 0;
+}
+
+template<typename T>
+constexpr auto index_of() -> int;
+
+template<>
+constexpr auto index_of<int>() -> int
+{
+    return 0;
+}
+
+template<>
+constexpr auto index_of<double>() -> int
+{
+    return 1;
+}
+
+template<>
+constexpr auto index_of<char const*>() -> int
+{
+    return 2;
 }
 
 } // namespace
 
-TEST_CASE("variadic pack", "[enumerate]")
-{
-    auto counter = 0;
-    SECTION("for-range")
-    {
-        for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
-            assert_type<int&, decltype(item.value)>();
+#if HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-            REQUIRE(item.index * 10 == item.value);
-            ++counter;
-        }
-        REQUIRE(counter == 5);
-    }
+TEST_CASE("variadic_tag_t", "[enumerate]")
+{
     SECTION("each")
     {
-        enumerate(0, 10, 20, 30, 40).each([&](std::size_t index, int& value) {
-            REQUIRE(index * 10 == value);
-            ++counter;
-        });
-        REQUIRE(counter == 5);
-    }
-}
+        auto counter = 0;
+        enumerate(0, 1., "str").each([&](auto index, auto& value) {
+            assert_same<decltype(index), std::size_t>();
 
-TEST_CASE("tuple", "[enumerate]")
-{
-    auto counter = std::size_t{0};
-    SECTION("exact size")
-    {
-        enumerate(std::make_tuple(0, 10, 20, 30, 40)).each([&](std::size_t index, int& value) {
-            REQUIRE(index * 10 == value);
-            ++counter;
-        });
-        REQUIRE(counter == 5);
-    }
-    SECTION("more")
-    {
-        enumerate(std::make_tuple(0, 10, 20, 30, 40), 10).each([&](std::size_t index, int& value) {
-            REQUIRE(index * 10 == value);
-            ++counter;
-        });
-        REQUIRE(counter == 5);
-    }
-    SECTION("less")
-    {
-        enumerate(std::make_tuple(0, 10, 20, 30, 40), 3).each([&](std::size_t index, int& value) {
-            REQUIRE(index * 10 == value);
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
             ++counter;
         });
         REQUIRE(counter == 3);
     }
-    SECTION("lvalue")
+    SECTION("each as int")
     {
-        auto tuple = std::make_tuple(0, 10, 20, 30, 40);
-        enumerate(tuple).each([&](std::size_t index, int& value) {
-            REQUIRE(index * 10 == value);
+        auto counter = 0;
+        enumerate_as<int>(0, 1., "str").each([&](auto index, auto& value) {
+            assert_same<decltype(index), int>();
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
             ++counter;
         });
+        REQUIRE(counter == 3);
+    }
+}
+
+#endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
+
+TEST_CASE("variadic_array_tag_t", "[enumerate]")
+{
+    SECTION("for-range")
+    {
+        auto counter = 0;
+        for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
+
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
         REQUIRE(counter == 5);
     }
-    SECTION("const propagation")
+    SECTION("for-range as int")
     {
-        struct const_function_object {
-            std::size_t& counter;
+        auto counter = 0;
+        for (auto&& item : enumerate_as<int>(0, 10, 20, 30, 40)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
 
-            void operator()(std::size_t index, int& value)
-            {}
-            void operator()(std::size_t index, int const& value)
-            {
-                REQUIRE(index * 10 == value);
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+}
+
+TEST_CASE("container_tag_t", "[enumerate]")
+{
+    SECTION("array")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}))) {
+                assert_same<int&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
                 ++counter;
             }
-        };
-        auto const tuple = std::make_tuple(0, 10, 20, 30, 40);
-        enumerate(tuple).each(const_function_object{counter});
+            REQUIRE(counter == 5);
+        }
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate(array)) {
+                assert_same<decltype(array)::size_type, decltype(item.index)>();
+                assert_same<decltype(array)::value_type&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate(array)) {
+                assert_same<decltype(array)::size_type, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(array)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+    }
+    SECTION("vector")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}))) {
+                assert_same<int&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto vector  = std::vector<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate(vector)) {
+                assert_same<decltype(vector)::size_type, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate(vector)) {
+                assert_same<decltype(vector)::size_type, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(vector)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+    }
+    SECTION("string")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(std::string("01234"))) {
+                assert_same<char&, decltype(item.value)>();
+
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto string  = std::string("01234");
+            for (auto&& item : enumerate(string)) {
+                assert_same<decltype(string)::size_type, decltype(item.index)>();
+                assert_same<decltype(string)::value_type&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            for (auto&& item : enumerate(string)) {
+                assert_same<decltype(string)::size_type, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            for (auto&& item : enumerate_as<int>(string)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+    }
+}
+
+#if HIPONY_ENUMERATE_CPP14_OR_GREATER
+
+TEST_CASE("tuple_tag_t", "[enumerate]")
+{
+    SECTION("prvalue")
+    {
+        auto counter = 0;
+        enumerate(std::make_tuple(0, 1., "str")).each([&](auto index, auto& value) {
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("lvalue")
+    {
+        auto counter = 0;
+        auto tuple   = std::make_tuple(0, 1., "str");
+        enumerate(tuple).each([&](auto index, auto& value) {
+            assert_same<decltype(index), std::size_t>();
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("const")
+    {
+        auto       counter = 0;
+        auto const tuple   = std::make_tuple(0, 1., "str");
+        enumerate(tuple).each([&](auto index, auto& value) {
+            assert_same<decltype(index), std::size_t>();
+            static_assert(
+                std::is_const<typename std::remove_reference<decltype(value)>::type>::value,
+                "Const propagation is broken");
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("as int")
+    {
+        auto       counter = 0;
+        auto const tuple   = std::make_tuple(0, 1., "str");
+        enumerate_as<int>(tuple).each([&](auto index, auto& value) {
+            assert_same<decltype(index), int>();
+            static_assert(
+                std::is_const<typename std::remove_reference<decltype(value)>::type>::value,
+                "Const propagation is broken");
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+}
+
+#endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
+
+TEST_CASE("pointer_tag_t", "[enumerate]")
+{
+    SECTION("for-range")
+    {
+        auto       counter = 0;
+        int        ptr[]   = {0, 10, 20, 30, 40};
+        auto const size    = sizeof(ptr) / sizeof(int);
+        for (auto&& item : enumerate(&ptr[0], size)) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
+
+            REQUIRE(&ptr[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("const")
+    {
+        auto       counter = 0;
+        int const  ptr[]   = {0, 10, 20, 30, 40};
+        auto const size    = sizeof(ptr) / sizeof(int);
+        for (auto&& item : enumerate(&ptr[0], size)) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<int const&, decltype(item.value)>();
+
+            REQUIRE(&ptr[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("as int")
+    {
+        auto       counter = 0;
+        int const  ptr[]   = {0, 10, 20, 30, 40};
+        auto const size    = static_cast<int>(sizeof(ptr) / sizeof(int));
+        for (auto&& item : enumerate_as<int>(&ptr[0], size)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int const&, decltype(item.value)>();
+
+            REQUIRE(&ptr[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
         REQUIRE(counter == 5);
     }
 }
 
-TEST_CASE("c-array", "[enumerate]")
+TEST_CASE("string_tag_t", "[enumerate]")
 {
-    auto counter = std::size_t{0};
-    SECTION("exact size")
+    SECTION("prvalue")
     {
-        int container[] = {0, 10, 20, 30, 40};
+        auto counter = 0;
+        for (auto&& item : enumerate("01234")) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<char const&, decltype(item.value)>();
+
+            // FIXME: Deduced as an array_tag_t, not string_tag_t
+            // REQUIRE(item.index + '0' == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 6);
+    }
+    SECTION("lvalue")
+    {
+        auto counter = 0;
+        auto string  = "01234";
+        for (auto&& item : enumerate(string)) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<char const&, decltype(item.value)>();
+
+            REQUIRE(&string[item.index] == &item.value); // NOLINT
+            REQUIRE(item.index + '0' == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("as int")
+    {
+        auto counter = 0;
+        auto string  = "01234";
+        for (auto&& item : enumerate_as<int>(string)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<char const&, decltype(item.value)>();
+
+            REQUIRE(&string[item.index] == &item.value); // NOLINT
+            REQUIRE(item.index + '0' == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+}
+
+TEST_CASE("array_tag_t", "[enumerate]")
+{
+    // FIXME: The lifetime of the array prvalue will end after the function call returns
+    // SECTION("prvalue")
+    // {
+    //     auto counter = 0;
+    //     for (auto&& item : enumerate({0, 10, 20, 30, 40})) {
+    //         assert_same<std::size_t, decltype(item.index)>();
+    //         assert_same<int&, decltype(item.value)>();
+
+    //         REQUIRE(item.index * 10 == item.value);
+
+    //         ++counter;
+    //     }
+    //     REQUIRE(counter == 5);
+    // }
+    SECTION("for-range")
+    {
+        auto counter     = 0;
+        int  container[] = {0, 10, 20, 30, 40};
         for (auto&& item : enumerate(container)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
 
-            REQUIRE(item.index * 10 == item.value);
             REQUIRE(&container[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
 
             ++counter;
         }
         REQUIRE(counter == 5);
     }
-    SECTION("more")
+    SECTION("const")
     {
-        int container[] = {0, 10, 20, 30, 40};
-        for (auto&& item : enumerate(container, 10)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+        auto      counter     = 0;
+        int const container[] = {0, 10, 20, 30, 40};
+        for (auto&& item : enumerate(container)) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<int const&, decltype(item.value)>();
 
-            REQUIRE(item.index * 10 == item.value);
             REQUIRE(&container[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
 
             ++counter;
         }
         REQUIRE(counter == 5);
     }
-    SECTION("less")
+    SECTION("as int")
     {
-        int container[] = {0, 10, 20, 30, 40};
-        for (auto&& item : enumerate(container, 3)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
+        auto      counter     = 0;
+        int const container[] = {0, 10, 20, 30, 40};
+        for (auto&& item : enumerate_as<int>(container)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int const&, decltype(item.value)>();
 
-            REQUIRE(item.index * 10 == item.value);
             REQUIRE(&container[item.index] == &item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 3);
-    }
-}
-
-TEST_CASE("array", "[enumerate]")
-{
-    auto counter = std::size_t{0};
-    SECTION("exact size")
-    {
-        for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}))) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
             REQUIRE(item.index * 10 == item.value);
 
             ++counter;
         }
         REQUIRE(counter == 5);
-    }
-    SECTION("more")
-    {
-        for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}), 10)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 5);
-    }
-    SECTION("less")
-    {
-        for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}), 3)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 3);
-    }
-    SECTION("lvalue")
-    {
-        auto array = std::array<int, 5>({0, 10, 20, 30, 40});
-        for (auto&& item : enumerate(array)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-            REQUIRE(&array[item.index] == &item.value);
-
-            ++counter;
-        };
-        REQUIRE(counter == 5);
-    }
-    SECTION("const propagation")
-    {
-        auto const array = std::array<int, 5>({0, 10, 20, 30, 40});
-        for (auto&& item : enumerate(array)) {
-            static_assert(
-                std::is_same<int const&, decltype(item.value)>::value,
-                "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-            REQUIRE(&array[item.index] == &item.value);
-
-            ++counter;
-        };
-        REQUIRE(counter == 5);
-    }
-}
-
-TEST_CASE("vector", "[enumerate]")
-{
-    auto counter = std::size_t{0};
-    SECTION("exact size")
-    {
-        for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}))) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 5);
-    }
-    SECTION("more")
-    {
-        for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}), 10)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 5);
-    }
-    SECTION("less")
-    {
-        for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}), 3)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 3);
-    }
-    SECTION("lvalue")
-    {
-        auto vector = std::vector<int>({0, 10, 20, 30, 40});
-        for (auto&& item : enumerate(vector)) {
-            static_assert(
-                std::is_same<int&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-            REQUIRE(&vector[item.index] == &item.value);
-
-            ++counter;
-        };
-        REQUIRE(counter == 5);
-    }
-    SECTION("const propagation")
-    {
-        auto const vector = std::vector<int>({0, 10, 20, 30, 40});
-        for (auto&& item : enumerate(vector)) {
-            static_assert(
-                std::is_same<int const&, decltype(item.value)>::value,
-                "Incorrect type propagation");
-
-            REQUIRE(item.index * 10 == item.value);
-            REQUIRE(&vector[item.index] == &item.value);
-
-            ++counter;
-        };
-        REQUIRE(counter == 5);
-    }
-}
-
-TEST_CASE("string literal", "[enumerate]")
-{
-    auto       container = "01234";
-    auto const size      = 5;
-
-    auto i = 0;
-    for (auto&& item : enumerate(container, size)) {
-        static_assert(
-            std::is_same<char const&, decltype(item.value)>::value, "Incorrect type propagation");
-
-        REQUIRE(i == item.index);
-        REQUIRE('0' + i == item.value);
-
-        ++i;
-    }
-}
-
-TEST_CASE("string", "[enumerate]")
-{
-    auto counter = std::size_t{0};
-    SECTION("exact size")
-    {
-        for (auto&& item : enumerate(std::string("01234"))) {
-            static_assert(
-                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index + '0' == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 5);
-    }
-    SECTION("more")
-    {
-        for (auto&& item : enumerate(std::string("01234"), 10)) {
-            static_assert(
-                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index + '0' == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 5);
-    }
-    SECTION("less")
-    {
-        for (auto&& item : enumerate(std::string("01234"), 3)) {
-            static_assert(
-                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index + '0' == item.value);
-
-            ++counter;
-        }
-        REQUIRE(counter == 3);
-    }
-    SECTION("lvalue")
-    {
-        auto vector = std::string("01234");
-        for (auto&& item : enumerate(vector)) {
-            static_assert(
-                std::is_same<char&, decltype(item.value)>::value, "Incorrect type propagation");
-
-            REQUIRE(item.index + '0' == item.value);
-            REQUIRE(&vector[item.index] == &item.value);
-
-            ++counter;
-        };
-        REQUIRE(counter == 5);
-    }
-    SECTION("const propagation")
-    {
-        auto const vector = std::string("01234");
-        for (auto&& item : enumerate(vector)) {
-            static_assert(
-                std::is_same<char const&, decltype(item.value)>::value,
-                "Incorrect type propagation");
-
-            REQUIRE(item.index + '0' == item.value);
-            REQUIRE(&vector[item.index] == &item.value);
-
-            ++counter;
-        };
-        REQUIRE(counter == 5);
-    }
-}
-
-TEST_CASE("map", "[enumerate]")
-{
-    auto container = std::map<int, int>({{0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}});
-
-    auto i = 0;
-    for (auto&& item : enumerate(container)) {
-        static_assert(
-            std::is_same<int, decltype(item.value.second)>::value, "Incorrect type propagation");
-
-        REQUIRE(i == item.index);
-        REQUIRE(i == item.value.second);
-
-        auto const new_value = static_cast<int>(container.size() - item.index);
-
-        item.value.second = new_value;
-        REQUIRE(container[item.index] == new_value);
-
-        ++i;
-    }
-}
-
-TEST_CASE("unordered_map", "[enumerate]")
-{
-    auto container
-        = std::unordered_map<char, int>({{'0', 0}, {'1', 1}, {'2', 2}, {'3', 3}, {'4', 4}});
-
-    for (auto&& item : enumerate(container)) {
-        static_assert(
-            std::is_same<int, decltype(item.value.second)>::value, "Incorrect type propagation");
-        (void)item.index;
-        (void)item.value;
     }
 }
 
@@ -434,4 +513,4 @@ TEST_CASE("constexpr", "[enumerate]")
 
 #endif
 
-} // namespace hipony
+} // namespace HIPONY_ENUMERATE_NAMESPACE
