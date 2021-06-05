@@ -6,9 +6,19 @@ C++11 compatible version of `enumerate`.
 
 An adapter for "range-like" things whose value type is a struct with `index` and `value` members representing respectively the position and the value of the elements of the passed range.
 
-It doesn't resemble the `views::enumerate` proposal since it's not based on C++20 ranges concepts.
+It resembles the `views::enumerate` proposal vaguely, but not based on C++20 ranges.
 
-Supports constexpr, tuples, variadic packs, containers, pointer and size pairs, c arrays.
+```cpp
+#include <hipony/enumerate.hpp>
+#include <iostream>
+
+int main() {
+    using hipony::enumerate_as;
+    for(auto&& [index, value] : enumerate_as<int>(0, 1, 2, 3, 4)) {
+        std::cout << index << ' ' << value << '\n';
+    }
+}
+```
 
 ## Performance
 
@@ -19,8 +29,26 @@ Supports constexpr, tuples, variadic packs, containers, pointer and size pairs, 
 * With C++17 structured bindings we can bind member variables to convenient aliases
 * With C++14 we can use `enumerate` in constexpr context
   * On MSVC requires at least v19.15 for that
+* With C++14 we can use `enumerate` with tuples via `.each` member function. It requires `auto` lambda parameters for it to work.
 
-## Examples
+## Features
+
+### As Size
+
+> If the size of a container is bigger than the maximum value for the specified type - the behavior is undefined.
+
+```cpp
+// C++17
+#include <hipony/enumerate.hpp>
+#include <type_traits>
+
+int main() {
+    using hipony::enumerate_as;
+    for(auto&& [index, value] : enumerate_as<int>(0, 1, 2, 3, 4)) {
+        static_assert(std::is_same_v<int, decltype(item.index)>);
+    }
+}
+```
 
 ### Constexpr
 
@@ -28,13 +56,10 @@ Supports constexpr, tuples, variadic packs, containers, pointer and size pairs, 
 // C++20
 #include <hipony/enumerate.hpp>
 
-#include <array>
-
 consteval auto get() -> int
 {
     using hipony::enumerate;
-    auto const array = std::array{0, 1, 2, 3, 4};
-    for (auto&& [index, value] : enumerate(array, 3)) {
+    for (auto&& [index, value] : enumerate(0, 1, 2, 3, 4)) {
         if (index == 4) {
             return value;
         }
@@ -61,18 +86,19 @@ struct function_object {
 };
 ```
 
-### Variadic Packs
+### Tuples
 
 ```cpp
+// C++14
 #include <hipony/enumerate.hpp>
 
 #include <iostream>
 
 int main() {
     using hipony::enumerate;
-    for (auto&& [index, value] : enumerate(1, 2, 3, 4, 5)) {
+    enumerate(0, 1., "string").each(auto index, auto& value) {
         std::cout << value << '\n';
-    }
+    });
 }
 ```
 
@@ -146,7 +172,7 @@ int main() {
 }
 ```
 
-### Pointer + Size
+### C-Strings
 
 ```cpp
 #include <hipony/enumerate.hpp>
@@ -155,35 +181,15 @@ int main() {
 
 int main() {
     using hipony::enumerate;
-    auto       container = "01234";
-    auto const size      = 5;
-    for (auto&& item : enumerate(container, size)) {
+    auto string = "01234";
+    for (auto&& item : enumerate(string)) {
         std::cout << item.index << '\n';
         std::cout << item.value << '\n';
     }
 }
 ```
 
-### Container + Size
-
-```cpp
-#include <hipony/enumerate.hpp>
-
-#include <vector>
-#include <iostream>
-
-int main() {
-    using hipony::enumerate;
-    auto const vec  = std::vector<int>{1, 2, 3, 4, 5};
-    auto const size = 3;
-    for (auto&& item : enumerate(vec, size)) {
-        std::cout << item.index << '\n';
-        std::cout << item.value << '\n';
-    }
-}
-```
-
-### C Array + Size
+### Pointers + Size
 
 ```cpp
 #include <hipony/enumerate.hpp>
@@ -192,9 +198,9 @@ int main() {
 
 int main() {
     using hipony::enumerate;
-    int        container[] = {0, 1, 2, 3, 4};
+    int        ptr[] = {0, 1, 2, 3, 4};
     auto const size = 3;
-    for (auto&& item : enumerate(container, size)) {
+    for (auto&& item : enumerate(&ptr[0], size)) {
         std::cout << item.index << '\n';
         std::cout << item.value << '\n';
     }
