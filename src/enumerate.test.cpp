@@ -24,27 +24,29 @@ constexpr auto assert_same() -> int
 }
 
 template<typename T>
-constexpr auto index_of();
+constexpr auto index_of() -> int;
 
 template<>
-constexpr auto index_of<int>()
+constexpr auto index_of<int>() -> int
 {
     return 0;
 }
 
 template<>
-constexpr auto index_of<double>()
+constexpr auto index_of<double>() -> int
 {
     return 1;
 }
 
 template<>
-constexpr auto index_of<char const*>()
+constexpr auto index_of<char const*>() -> int
 {
     return 2;
 }
 
 } // namespace
+
+#if HIPONY_ENUMERATE_CPP14_OR_GREATER
 
 TEST_CASE("variadic_tag_t", "[enumerate]")
 {
@@ -71,6 +73,8 @@ TEST_CASE("variadic_tag_t", "[enumerate]")
         REQUIRE(counter == 3);
     }
 }
+
+#endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
 
 TEST_CASE("variadic_array_tag_t", "[enumerate]")
 {
@@ -272,6 +276,8 @@ TEST_CASE("container_tag_t", "[enumerate]")
     }
 }
 
+#if HIPONY_ENUMERATE_CPP14_OR_GREATER
+
 TEST_CASE("tuple_tag_t", "[enumerate]")
 {
     SECTION("prvalue")
@@ -326,6 +332,8 @@ TEST_CASE("tuple_tag_t", "[enumerate]")
         REQUIRE(counter == 3);
     }
 }
+
+#endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
 
 TEST_CASE("pointer_tag_t", "[enumerate]")
 {
