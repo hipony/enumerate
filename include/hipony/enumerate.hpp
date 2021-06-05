@@ -78,7 +78,7 @@ template<typename It>
 HIPONY_ENUMERATE_CONSTEXPR auto do_advance(
     It                                                 it,
     typename std::iterator_traits<It>::difference_type n,
-    std::random_access_iterator_tag) noexcept -> It
+    std::random_access_iterator_tag /*tag*/) noexcept -> It
 {
     return it + n;
 }
@@ -242,6 +242,11 @@ struct tag<Size, char32_t const*, typename detail::enable_if_t<std::is_integral<
     using type = string_tag_t;
 };
 
+// template<typename Size, Size N>
+// struct tag<Size, char[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+//     using type = string_tag_t;
+// };
+
 template<typename Size, typename T, Size N>
 struct tag<Size, T[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
     using type = array_tag_t;
@@ -340,7 +345,7 @@ public:
             return *this;
         }
 
-        HIPONY_ENUMERATE_NODISCARD auto operator++(int) noexcept -> iterator
+        auto operator++(int) noexcept -> iterator
         {
             auto tmp = *this;
             ++(*this);
@@ -530,7 +535,6 @@ struct wrapper {
     using size_type  = Size;
 
     value_type data;
-    // size_type  size;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
         -> iterator<size_type, value_type>
@@ -542,7 +546,6 @@ struct wrapper {
         -> iterator<size_type, value_type>
     {
         return {data.end()};
-        // return {data.size() < size ? data.end() : detail::next(data.begin(), size)};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
@@ -555,15 +558,6 @@ struct wrapper {
         -> iterator<size_type, value_type>
     {
         return {data.end()};
-        // return {data.size() < size ? data.end() : detail::next(data.begin(), size)};
-    }
-
-    template<typename F>
-    HIPONY_ENUMERATE_CONSTEXPR void each(F&& f)
-    {
-        for (auto&& item : *this) {
-            f(item.index, item.value);
-        }
     }
 };
 
@@ -575,7 +569,6 @@ struct tuple_wrapper<Size, T, Tuple<Ts...>> {
     using tuple_type = typename detail::remove_rref_t<T>;
     using size_type  = Size;
 
-    // size_type  size;
     tuple_type data;
 
     template<typename F>
@@ -592,10 +585,8 @@ private:
     template<typename F, size_type N, typename Arg, typename... Args>
     HIPONY_ENUMERATE_CONSTEXPR void do_each(F&& f)
     {
-        // if (N < size) {
         f(N, std::get<N>(data));
         do_each<F, N + 1, Args...>(static_cast<F&&>(f));
-        //}
     }
 };
 
@@ -624,7 +615,8 @@ struct dispatch<detail::tuple_tag_t, Size, T> {
 
 template<typename Size, typename T, typename TSize>
 struct dispatch<detail::pointer_tag_t, Size, T, TSize> {
-    using type = detail::wrapper<Size, detail::span<detail::remove_cvref_t<T>, Size>>;
+    using type = detail::
+        wrapper<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
 };
 
 template<typename Size, typename T>
@@ -634,12 +626,12 @@ struct dispatch<detail::string_tag_t, Size, T> {
 
 template<typename Size, typename T, Size N>
 struct dispatch<detail::array_tag_t, Size, T (&)[N]> {
-    using type = detail::wrapper<Size, detail::span<detail::remove_cvref_t<T>, Size, N>>;
+    using type = detail::wrapper<Size, detail::span<detail::remove_ref_t<T>, Size, N>>;
 };
 
 template<typename Size, typename T, Size N, typename TSize>
 struct dispatch<detail::array_tag_t, Size, T (&)[N], TSize> {
-    using type = detail::wrapper<Size, detail::span<detail::remove_cvref_t<T>, Size>>;
+    using type = detail::wrapper<Size, detail::span<detail::remove_ref_t<T>, Size>>;
 };
 
 template<typename... Ts>
@@ -648,34 +640,49 @@ using dispatch_t = typename dispatch<Ts...>::type;
 } // namespace detail
 
 template<typename T, typename... Ts>
-HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate(T&& t, Ts&&... ts) noexcept
-    -> detail::dispatch_t<
-        detail::tag_t<
-            detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
-            detail::remove_cvref_t<T>,
-            detail::void_t<>,
-            detail::remove_cvref_t<Ts>...>,
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+    detail::tag_t<
         detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
-        T,
-        Ts...>
+        detail::remove_cvref_t<T>,
+        detail::void_t<>,
+        detail::remove_cvref_t<Ts>...>,
+    detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
+    T,
+    Ts...>
 {
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
 template<typename Size, typename T, typename... Ts>
-HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto enumerate_as(T&& t, Ts&&... ts) noexcept
-    -> detail::dispatch_t<
-        detail::tag_t<
-            detail::size_t<Size, detail::remove_cvref_t<T>>,
-            detail::remove_cvref_t<T>,
-            detail::void_t<>,
-            detail::remove_cvref_t<Ts>...>,
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate_as(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+    detail::tag_t<
         detail::size_t<Size, detail::remove_cvref_t<T>>,
-        T,
-        Ts...>
+        detail::remove_cvref_t<T>,
+        detail::void_t<>,
+        detail::remove_cvref_t<Ts>...>,
+    detail::size_t<Size, detail::remove_cvref_t<T>>,
+    T,
+    Ts...>
 {
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
+
+// template<typename T, std::size_t N>
+// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto enumerate(T(&&arr)[N]) noexcept
+//     -> decltype(enumerate(detail::span<detail::remove_cvref_t<T>, std::size_t, N>(arr)))
+// {
+//     return enumerate(detail::span<detail::remove_cvref_t<T>, std::size_t, N>(arr));
+// }
+
+// template<typename Size, typename T, Size N>
+// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto enumerate_as(T(&&arr)[N])
+// noexcept
+//     -> decltype(enumerate_as<Size>(detail::span<detail::remove_cvref_t<T>, Size, N>(arr)))
+// {
+//     return enumerate_as<Size>(detail::span<detail::remove_cvref_t<T>, Size, N>(arr));
+// }
 
 } // namespace hipony_enumerate
 

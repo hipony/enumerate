@@ -65,18 +65,20 @@ static_assert(std::is_same<detail::size_t<int, std::tuple<int, float>>, int>::va
 
 namespace {
 struct user_container {
+    int* _begin;
+    int* _end;
     using size_type = int;
     auto begin() const -> int*
     {
-        return {};
+        return _begin;
     }
     auto end() const -> int*
     {
-        return {};
+        return _end;
     }
     auto size() const -> size_type
     {
-        return {};
+        return _end - _begin;
     }
 };
 } // namespace
@@ -150,6 +152,7 @@ static_assert(
 // Returned type
 
 static_assert(detail::is_container<decltype(enumerate(0, 1, 2, 3, 4))>::value, "");
+// static_assert(detail::is_container<decltype(enumerate({0, 1, 2, 3, 4}))>::value, "");
 static_assert(!detail::is_container<decltype(enumerate(0, 1., "string"))>::value, "");
 static_assert(
     detail::is_container<decltype(enumerate(std::declval<std::vector<int>>()))>::value,
