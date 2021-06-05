@@ -458,10 +458,10 @@ struct iterator_value {
     }
 };
 
-template<typename Size, typename Container>
+template<typename Size, typename InnerIterator>
 class iterator {
 public:
-    using inner_iterator  = decltype(std::declval<Container>().begin());
+    using inner_iterator  = InnerIterator;
     using inner_reference = decltype(*inner_iterator{});
 
     using iterator_category = std::forward_iterator_tag;
@@ -537,25 +537,25 @@ struct wrapper {
     value_type data;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> iterator<size_type, value_type>
+        -> iterator<size_type, decltype(data.begin())>
     {
         return {data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> iterator<size_type, value_type>
+        -> iterator<size_type, decltype(data.begin())>
     {
         return {data.end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> iterator<size_type, value_type>
+        -> iterator<size_type, decltype(data.begin())>
     {
         return {data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> iterator<size_type, value_type>
+        -> iterator<size_type, decltype(data.begin())>
     {
         return {data.end()};
     }
