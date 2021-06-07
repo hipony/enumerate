@@ -28,7 +28,8 @@ int main() {
 
 * With C++17 structured bindings we can bind member variables to convenient aliases
 * With C++14 we can use `enumerate` in constexpr context
-  * On MSVC requires at least v19.15 for that
+  * On MSVC requires at least v19.15 for that, but only works with value enumeration before v19.28, eg `for (auto item : enumerate(0, 1, 2, 3, 4))`, but not anything that references anything.
+  * On GCC requires at least 5.4
 * With C++14 we can use `enumerate` with tuples via `.each` member function. It requires `auto` lambda parameters for it to work.
 
 ## Features
@@ -76,7 +77,7 @@ struct function_object {
     constexpr auto operator()() const -> int
     {
         using hipony::enumerate;
-        for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
+        for (auto item : enumerate(0, 10, 20, 30, 40)) {
             if (item.index == 4) {
                 return item.value;
             }
@@ -172,7 +173,7 @@ int main() {
 }
 ```
 
-### C-Strings
+### C-Strings (null-terminated)
 
 ```cpp
 #include <hipony/enumerate.hpp>
