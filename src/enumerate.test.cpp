@@ -499,7 +499,7 @@ TEST_CASE("constexpr", "[enumerate]")
     struct function_object {
         constexpr auto operator()() const -> int
         {
-            for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
+            for (auto item : enumerate(0, 10, 20, 30, 40)) {
                 if (item.index == 3) {
                     return item.value;
                 }
