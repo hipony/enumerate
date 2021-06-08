@@ -386,50 +386,230 @@ TEST_CASE("pointer_tag_t", "[enumerate]")
 
 TEST_CASE("string_tag_t", "[enumerate]")
 {
-    SECTION("prvalue")
+    SECTION("char")
     {
-        auto counter = 0;
-        for (auto&& item : enumerate("01234")) {
-            assert_same<std::size_t, decltype(item.index)>();
-            assert_same<char const&, decltype(item.value)>();
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate("01234")) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char const&, decltype(item.value)>();
 
-            // FIXME: Deduced as an array_tag_t, not string_tag_t
-            // REQUIRE(item.index + '0' == item.value);
-            ++counter;
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
         }
-        REQUIRE(counter == 6);
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto string  = "01234";
+            for (auto&& item : enumerate(string)) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto counter = 0;
+            auto string  = "01234";
+            for (auto&& item : enumerate_as<int>(string)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
     }
-    SECTION("lvalue")
+    SECTION("wchar")
     {
-        auto counter = 0;
-        auto string  = "01234";
-        for (auto&& item : enumerate(string)) {
-            assert_same<std::size_t, decltype(item.index)>();
-            assert_same<char const&, decltype(item.value)>();
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(L"01234")) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<wchar_t const&, decltype(item.value)>();
 
-            REQUIRE(&string[item.index] == &item.value); // NOLINT
-            REQUIRE(item.index + '0' == item.value);
-            ++counter;
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
         }
-        REQUIRE(counter == 5);
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto string  = L"01234";
+            for (auto&& item : enumerate(string)) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<wchar_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto counter = 0;
+            auto string  = L"01234";
+            for (auto&& item : enumerate_as<int>(string)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<wchar_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
     }
-    SECTION("as int")
-    {
-        auto counter = 0;
-        auto string  = "01234";
-        for (auto&& item : enumerate_as<int>(string)) {
-            assert_same<int, decltype(item.index)>();
-            assert_same<char const&, decltype(item.value)>();
 
-            REQUIRE(&string[item.index] == &item.value); // NOLINT
-            REQUIRE(item.index + '0' == item.value);
-            ++counter;
+#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+    SECTION("char8")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(u8"01234")) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char8_t const&, decltype(item.value)>();
+
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
         }
-        REQUIRE(counter == 5);
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto string  = u8"01234";
+            for (auto&& item : enumerate(string)) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char8_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto counter = 0;
+            auto string  = u8"01234";
+            for (auto&& item : enumerate_as<int>(string)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char8_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+    }
+#endif // HIPONY_ENUMERATE_CPP20_OR_GREATER
+
+    SECTION("char16")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(u"01234")) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char16_t const&, decltype(item.value)>();
+
+                // FIXME: Deduced as an array_tag_t, not string_tag_t
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto string  = u"01234";
+            for (auto&& item : enumerate(string)) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char16_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto counter = 0;
+            auto string  = u"01234";
+            for (auto&& item : enumerate_as<int>(string)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char16_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+    }
+
+    SECTION("char32")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(U"01234")) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char32_t const&, decltype(item.value)>();
+
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto string  = U"01234";
+            for (auto&& item : enumerate(string)) {
+                assert_same<std::size_t, decltype(item.index)>();
+                assert_same<char32_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto counter = 0;
+            auto string  = U"01234";
+            for (auto&& item : enumerate_as<int>(string)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char32_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
     }
 }
 
-TEST_CASE("array_tag_t", "[enumerate]")
+TEST_CASE("", "[enumerate]")
 {
     // FIXME: The lifetime of the array prvalue will end after the function call returns
     // SECTION("prvalue")

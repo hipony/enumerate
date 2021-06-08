@@ -29,6 +29,7 @@
 
 #define HIPONY_ENUMERATE_CPP14_OR_GREATER (HIPONY_ENUMERATE_CPLUSPLUS >= 201402L)
 #define HIPONY_ENUMERATE_CPP17_OR_GREATER (HIPONY_ENUMERATE_CPLUSPLUS >= 201703L)
+#define HIPONY_ENUMERATE_CPP20_OR_GREATER (HIPONY_ENUMERATE_CPLUSPLUS >= 202002L)
 
 #if defined(_MSC_VER)
 #define HIPONY_ENUMERATE_HAS_CONSTEXPR (HIPONY_ENUMERATE_CPP14_OR_GREATER && _MSC_VER > 1914)
@@ -143,14 +144,61 @@ using remove_cvref_t = typename std::remove_cv<typename detail::remove_ref_t<T>>
 template<typename T>
 using remove_pointer_t = typename std::remove_pointer<T>::type;
 
+template<typename T>
+using decay_t = typename std::decay<T>::type;
+
+template<typename T>
+struct sanitize {
+    using type = typename detail::remove_cvref_t<T>;
+};
+
+template<typename T, std::size_t N>
+struct sanitize<T[N]> {
+    using type = T[N];
+};
+
+template<typename T, std::size_t N>
+struct sanitize<T (&)[N]> {
+    using type = T[N];
+};
+
+template<typename T, std::size_t N>
+struct sanitize<T(&&)[N]> {
+    using type = T[N];
+};
+
+template<typename T>
+using sanitize_t = typename sanitize<T>::type;
+
+template<typename T>
+struct is_string_literal : std::false_type {};
+
+template<>
+struct is_string_literal<char const> : std::true_type {};
+
+template<>
+struct is_string_literal<wchar_t const> : std::true_type {};
+
+#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+
+template<>
+struct is_string_literal<char8_t const> : std::true_type {};
+
+#endif
+
+template<>
+struct is_string_literal<char16_t const> : std::true_type {};
+
+template<>
+struct is_string_literal<char32_t const> : std::true_type {};
+
 template<typename T, typename = void>
 struct is_container : std::false_type {};
 
 template<typename T>
 struct is_container<
     T,
-    typename detail::
-        void_t<decltype(std::begin(std::declval<T>())), decltype(std::end(std::declval<T>()))>>
+    typename detail::void_t<decltype(std::declval<T>().begin()), decltype(std::declval<T>().end())>>
     : std::true_type {};
 
 template<typename T, typename = void>
@@ -232,6 +280,15 @@ struct tag<Size, wchar_t const*, typename detail::enable_if_t<std::is_integral<S
     using type = string_tag_t;
 };
 
+#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+
+template<typename Size>
+struct tag<Size, char8_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#endif
+
 template<typename Size>
 struct tag<Size, char16_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
     using type = string_tag_t;
@@ -242,13 +299,41 @@ struct tag<Size, char32_t const*, typename detail::enable_if_t<std::is_integral<
     using type = string_tag_t;
 };
 
-// template<typename Size, Size N>
-// struct tag<Size, char[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
-//     using type = string_tag_t;
-// };
+template<typename Size, Size N>
+struct tag<Size, char const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size, Size N>
+struct tag<Size, wchar_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+
+template<typename Size, Size N>
+struct tag<Size, char8_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#endif
+
+template<typename Size, Size N>
+struct tag<Size, char16_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size, Size N>
+struct tag<Size, char32_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
 
 template<typename Size, typename T, Size N>
-struct tag<Size, T[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+struct tag<
+    Size,
+    T[N],
+    typename detail::enable_if_t<
+        std::is_integral<Size>::value && !detail::is_string_literal<T>::value>> {
     using type = array_tag_t;
 };
 
@@ -621,7 +706,7 @@ struct dispatch<detail::pointer_tag_t, Size, T, TSize> {
 
 template<typename Size, typename T>
 struct dispatch<detail::string_tag_t, Size, T> {
-    using type = detail::wrapper<Size, detail::zstring_view<detail::remove_cvref_t<T>>>;
+    using type = detail::wrapper<Size, detail::zstring_view<detail::decay_t<T>>>;
 };
 
 template<typename Size, typename T, Size N>
@@ -644,7 +729,7 @@ HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
 enumerate(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     detail::tag_t<
         detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
-        detail::remove_cvref_t<T>,
+        detail::sanitize_t<T>,
         detail::void_t<>,
         detail::remove_cvref_t<Ts>...>,
     detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
@@ -659,7 +744,7 @@ HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
 enumerate_as(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     detail::tag_t<
         detail::size_t<Size, detail::remove_cvref_t<T>>,
-        detail::remove_cvref_t<T>,
+        detail::sanitize_t<T>,
         detail::void_t<>,
         detail::remove_cvref_t<Ts>...>,
     detail::size_t<Size, detail::remove_cvref_t<T>>,

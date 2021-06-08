@@ -40,6 +40,7 @@ static_assert(std::is_same<detail::remove_rref_t<int const*>, int const*>::value
 static_assert(std::is_same<detail::remove_rref_t<int const*&&>, int const*>::value, "");
 
 static_assert(!detail::is_container<int>::value, "");
+static_assert(!detail::is_container<int[2]>::value, "");
 static_assert(detail::is_container<std::array<int, 1>>::value, "");
 static_assert(detail::is_container<std::vector<int>>::value, "");
 static_assert(detail::is_container<std::map<int, int>>::value, "");
