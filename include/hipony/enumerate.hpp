@@ -256,7 +256,8 @@ template<typename Size, typename T>
 struct tag<
     Size,
     T,
-    typename detail::enable_if_t<detail::is_tuple<T>::value && !detail::is_container<T>::value>> {
+    typename detail::enable_if_t<
+        detail::is_tuple<detail::decay_t<T>>::value && !detail::is_container<T>::value>> {
     using type = tuple_tag_t;
 };
 
