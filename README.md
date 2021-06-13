@@ -214,6 +214,11 @@ It's a single-file header-only library, so you can put the `hipony/enumerate.hpp
 
 Alternatively, project provides CMake instructions for usage with `add_subdirectory` or `cmake install`.
 
+```cmake
+find_package(hipony-enumerate)
+target_link_libraries(app PRIVATE hipony::enumerate)
+```
+
 ## Developing
 
 Project provides a `conanfile.txt` to pull in dependencies for testing, but uses a transparent integration otherwise. If used with another package manager - one should make sure the directory with config files is visible for `find_package`.
