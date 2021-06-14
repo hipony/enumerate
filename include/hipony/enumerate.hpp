@@ -545,7 +545,7 @@ public:
     }
 };
 
-template<typename T, typename std::iterator_traits<T*>::difference_type N>
+template<typename T, typename std::iterator_traits<detail::remove_cvref_t<T>*>::difference_type N>
 struct array {
     using value_type      = T;
     using pointer         = T*;
