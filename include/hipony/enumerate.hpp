@@ -192,6 +192,9 @@ struct is_string_literal<char16_t const> : std::true_type {};
 template<>
 struct is_string_literal<char32_t const> : std::true_type {};
 
+template<typename T>
+using is_pointer = typename std::is_pointer<T>;
+
 template<typename T, typename = void>
 struct is_container : std::false_type {};
 
@@ -200,6 +203,17 @@ struct is_container<
     T,
     typename detail::void_t<decltype(std::declval<T>().begin()), decltype(std::declval<T>().end())>>
     : std::true_type {};
+
+template<typename T, typename = void>
+struct is_iterator : std::false_type {};
+
+template<typename T>
+struct is_iterator<
+    T,
+    typename detail::void_t<
+        decltype(std::declval<T&>() != std::declval<T&>()),
+        decltype(++std::declval<T&>()),
+        decltype(*std::declval<T&>())>> : std::true_type {};
 
 template<typename T, typename = void>
 struct is_tuple : std::false_type {};
@@ -231,6 +245,8 @@ using size_t = typename detail::size<Ts...>::type;
 
 struct variadic_tag_t {};
 struct variadic_array_tag_t {};
+struct iterator_pointer_tag_t {};
+struct iterator_tag_t {};
 struct container_tag_t {};
 struct tuple_tag_t {};
 struct pointer_tag_t {};
@@ -238,13 +254,26 @@ struct string_tag_t {};
 struct array_tag_t {};
 
 template<typename Size, typename T, typename = void, typename...>
-struct tag {
-    using type = variadic_tag_t;
+struct tag;
+
+template<typename Size, typename T, typename T1>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::is_same<T, T1>() && detail::is_iterator<T>::value && detail::is_pointer<T>::value>,
+    T1> {
+    using type = iterator_pointer_tag_t;
 };
 
-template<typename Size, typename T, typename T1, typename... Ts>
-struct tag<Size, T, typename detail::enable_if_t<detail::is_same<T, T1, Ts...>()>, T1, Ts...> {
-    using type = variadic_array_tag_t;
+template<typename Size, typename T, typename T1>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::is_same<T, T1>() && detail::is_iterator<T>::value && !detail::is_pointer<T>::value>,
+    T1> {
+    using type = iterator_tag_t;
 };
 
 template<typename Size, typename T>
@@ -372,6 +401,10 @@ private:
     size_type _size;
 
 public:
+    HIPONY_ENUMERATE_CONSTEXPR span(pointer begin, pointer end)
+        : _ptr{begin}
+        , _size{static_cast<size_type>(end - begin)}
+    {}
     HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr, size_type size)
         : _ptr{ptr}
         , _size{size}
@@ -396,6 +429,36 @@ public:
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
     {
         return _size;
+    }
+};
+
+template<typename It, typename Size>
+class range_span {
+public:
+    using iterator       = It;
+    using const_iterator = It;
+    using size_type      = Size;
+
+private:
+    iterator _begin;
+    iterator _end;
+
+public:
+    HIPONY_ENUMERATE_CONSTEXPR range_span(iterator begin, iterator end)
+        : _begin{begin}
+        , _end{end}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> const_iterator
+    {
+        return _begin;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> const_iterator
+    {
+        return _end;
     }
 };
 
@@ -482,7 +545,7 @@ public:
     }
 };
 
-template<typename T, typename std::iterator_traits<T*>::difference_type N>
+template<typename T, typename std::iterator_traits<detail::remove_cvref_t<T>*>::difference_type N>
 struct array {
     using value_type      = T;
     using pointer         = T*;
@@ -689,6 +752,17 @@ struct dispatch<detail::variadic_array_tag_t, Size, T, Ts...> {
     using type = detail::wrapper<Size, detail::array<detail::remove_rref_t<T>, sizeof...(Ts) + 1>>;
 };
 
+template<typename Size, typename T, typename T1>
+struct dispatch<detail::iterator_pointer_tag_t, Size, T, T1> {
+    using type = detail::
+        wrapper<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
+};
+
+template<typename Size, typename T, typename T1>
+struct dispatch<detail::iterator_tag_t, Size, T, T1> {
+    using type = detail::wrapper<Size, detail::range_span<detail::remove_ref_t<T>, Size>>;
+};
+
 template<typename Size, typename T>
 struct dispatch<detail::container_tag_t, Size, T> {
     using type = detail::wrapper<Size, detail::remove_rref_t<T>>;
@@ -755,22 +829,65 @@ enumerate_as(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
-// template<typename T, std::size_t N>
-// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto enumerate(T(&&arr)[N]) noexcept
-//     -> decltype(enumerate(detail::span<detail::remove_cvref_t<T>, std::size_t, N>(arr)))
-// {
-//     return enumerate(detail::span<detail::remove_cvref_t<T>, std::size_t, N>(arr));
-// }
+struct as_tuple_t {
+    explicit as_tuple_t() = default;
+};
 
-// template<typename Size, typename T, Size N>
-// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto enumerate_as(T(&&arr)[N])
-// noexcept
-//     -> decltype(enumerate_as<Size>(detail::span<detail::remove_cvref_t<T>, Size, N>(arr)))
-// {
-//     return enumerate_as<Size>(detail::span<detail::remove_cvref_t<T>, Size, N>(arr));
-// }
+template<typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+    detail::variadic_tag_t,
+    detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
+    T,
+    Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
+
+template<typename Size, typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate_as(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
+    dispatch_t<detail::variadic_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
+
+struct as_array_t {
+    explicit as_array_t() = default;
+};
+
+template<typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+    detail::variadic_array_tag_t,
+    detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
+    T,
+    Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
+
+template<typename Size, typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate_as(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
+    dispatch_t<detail::variadic_array_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
 
 } // namespace hipony_enumerate
+
+#ifndef HIPONY_AS_ARRAY_ALIASED
+#define HIPONY_AS_ARRAY_ALIASED
+using hipony_enumerate::as_array_t;
+HIPONY_ENUMERATE_CONSTEXPR auto const as_array = as_array_t{};
+#endif
+
+#ifndef HIPONY_AS_TUPLE_ALIASED
+#define HIPONY_AS_TUPLE_ALIASED
+using hipony_enumerate::as_tuple_t;
+HIPONY_ENUMERATE_CONSTEXPR auto const as_tuple = as_tuple_t{};
+#endif
 
 using hipony_enumerate::enumerate;
 using hipony_enumerate::enumerate_as;

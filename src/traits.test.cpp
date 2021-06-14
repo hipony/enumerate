@@ -6,6 +6,7 @@
 #include <hipony/enumerate.hpp>
 
 #include <array>
+#include <list>
 #include <map>
 #include <string>
 #include <tuple>
@@ -79,7 +80,7 @@ struct user_container {
     }
     auto size() const -> size_type
     {
-        return _end - _begin;
+        return static_cast<size_type>(_end - _begin);
     }
 };
 } // namespace
@@ -89,13 +90,14 @@ static_assert(std::is_same<detail::size_t<std::size_t, user_container>, std::siz
 
 // Tag inference
 
-static_assert(std::is_same<detail::tag_t<std::size_t, int>, detail::variadic_tag_t>::value, "");
 static_assert(
-    std::is_same<detail::tag_t<std::size_t, int, void, std::string>, detail::variadic_tag_t>::value,
+    std::is_same<detail::tag_t<std::size_t, int*, void, int*>, detail::iterator_pointer_tag_t>::value,
     "");
 
 static_assert(
-    std::is_same<detail::tag_t<std::size_t, int, void, int>, detail::variadic_array_tag_t>::value,
+    std::is_same<
+        detail::tag_t<std::size_t, std::list<int>::iterator, void, std::list<int>::iterator>,
+        detail::iterator_tag_t>::value,
     "");
 
 static_assert(
@@ -152,9 +154,9 @@ static_assert(
 
 // Returned type
 
-static_assert(detail::is_container<decltype(enumerate(0, 1, 2, 3, 4))>::value, "");
-// static_assert(detail::is_container<decltype(enumerate({0, 1, 2, 3, 4}))>::value, "");
-static_assert(!detail::is_container<decltype(enumerate(0, 1., "string"))>::value, "");
+static_assert(detail::is_container<decltype(enumerate(as_array, 0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_container<decltype(enumerate(as_tuple, 0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_container<decltype(enumerate(as_tuple, 0, 1., "string"))>::value, "");
 static_assert(
     detail::is_container<decltype(enumerate(std::declval<std::vector<int>>()))>::value,
     "");
@@ -181,8 +183,13 @@ static_assert(
         decltype(enumerate(std::declval<int (&)[5]>(), std::declval<std::size_t>()))>::value,
     "");
 
-static_assert(detail::is_container<decltype(enumerate_as<int>(0, 1, 2, 3, 4))>::value, "");
-static_assert(!detail::is_container<decltype(enumerate_as<int>(0, 1., "string"))>::value, "");
+static_assert(detail::is_container<decltype(enumerate_as<int>(as_array, 0, 1, 2, 3, 4))>::value, "");
+static_assert(
+    !detail::is_container<decltype(enumerate_as<int>(as_tuple, 0, 1, 2, 3, 4))>::value,
+    "");
+static_assert(
+    !detail::is_container<decltype(enumerate_as<int>(as_tuple, 0, 1., "string"))>::value,
+    "");
 static_assert(
     detail::is_container<decltype(enumerate_as<int>(std::declval<std::vector<int>>()))>::value,
     "");

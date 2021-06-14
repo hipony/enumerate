@@ -14,7 +14,8 @@ It resembles the `views::enumerate` proposal vaguely, but not based on C++20 ran
 
 int main() {
     using hipony::enumerate_as;
-    for(auto&& [index, value] : enumerate_as<int>(0, 1, 2, 3, 4)) {
+    using hipony::as_array;
+    for(auto&& [index, value] : enumerate_as<int>(as_array, 0, 1, 2, 3, 4)) {
         std::cout << index << ' ' << value << '\n';
     }
 }
@@ -28,13 +29,13 @@ int main() {
 
 * With C++17 structured bindings we can bind member variables to convenient aliases
 * With C++14 we can use `enumerate` in constexpr context
-  * On MSVC requires at least v19.15 for that, but only works with value enumeration before v19.28, eg `for (auto item : enumerate(0, 1, 2, 3, 4))`, but not anything that references anything.
+  * On MSVC requires at least v19.15 for that, but only works with value enumeration before v19.28, eg `for (auto item : enumerate(as_array, 0, 1, 2, 3, 4))`, but not anything that references anything.
   * On GCC requires at least 5.4
 * With C++14 we can use `enumerate` with tuples via `.each` member function. It requires `auto` lambda parameters for it to work.
 
 ## Features
 
-### As Size
+### `_as<type>` to specify the type of the `index` to cast to
 
 > If the size of a container is bigger than the maximum value for the specified type - the behavior is undefined.
 
@@ -45,7 +46,8 @@ int main() {
 
 int main() {
     using hipony::enumerate_as;
-    for(auto&& [index, value] : enumerate_as<int>(0, 1, 2, 3, 4)) {
+    using hipony::as_array;
+    for(auto&& [index, value] : enumerate_as<int>(as_array, 0, 1, 2, 3, 4)) {
         static_assert(std::is_same_v<int, decltype(item.index)>);
     }
 }
@@ -60,7 +62,8 @@ int main() {
 consteval auto get() -> int
 {
     using hipony::enumerate;
-    for (auto&& [index, value] : enumerate(0, 1, 2, 3, 4)) {
+    using hipony::as_array;
+    for (auto&& [index, value] : enumerate(as_array, 0, 1, 2, 3, 4)) {
         if (index == 4) {
             return value;
         }
@@ -77,7 +80,8 @@ struct function_object {
     constexpr auto operator()() const -> int
     {
         using hipony::enumerate;
-        for (auto item : enumerate(0, 10, 20, 30, 40)) {
+        using hipony::as_array;
+        for (auto item : enumerate(as_array, 0, 10, 20, 30, 40)) {
             if (item.index == 4) {
                 return item.value;
             }
@@ -97,7 +101,8 @@ struct function_object {
 
 int main() {
     using hipony::enumerate;
-    enumerate(0, 1., "string").each(auto index, auto& value) {
+    using hipony::as_tuple;
+    enumerate(as_tuple, 0, 1., "string").each(auto index, auto& value) {
         std::cout << value << '\n';
     });
 }
@@ -131,6 +136,23 @@ int main() {
     for (auto&& item : enumerate(std::vector<int>{1, 2, 3, 4, 5})) {
         std::cout << item.index << '\n';
         std::cout << item.value << '\n';
+    }
+}
+```
+
+### Begin + End
+
+```cpp
+#include <hipony/enumerate.hpp>
+
+#include <list>
+#include <iostream>
+
+int main() {
+    using hipony::enumerate;
+    auto list = std::list{1, 2, 3, 4, 5};
+    for (auto&& [index, value] : enumerate(list.begin(), list.end())) {
+        std::cout << value << '\n';
     }
 }
 ```
