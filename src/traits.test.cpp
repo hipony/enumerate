@@ -90,17 +90,6 @@ static_assert(std::is_same<detail::size_t<std::size_t, user_container>, std::siz
 
 // Tag inference
 
-// static_assert(std::is_same<detail::tag_t<std::size_t, int>, detail::variadic_tag_t>::value, "");
-// static_assert(
-//     std::is_same<detail::tag_t<std::size_t, int, void, std::string>,
-//     detail::variadic_tag_t>::value,
-//     "");
-
-// static_assert(
-//     std::is_same<detail::tag_t<std::size_t, int, void, int>,
-//     detail::variadic_array_tag_t>::value,
-//     "");
-
 static_assert(
     std::is_same<detail::tag_t<std::size_t, int*, void, int*>, detail::iterator_pointer_tag_t>::value,
     "");
@@ -165,9 +154,9 @@ static_assert(
 
 // Returned type
 
-// static_assert(detail::is_container<decltype(enumerate(0, 1, 2, 3, 4))>::value, "");
-// static_assert(detail::is_container<decltype(enumerate({0, 1, 2, 3, 4}))>::value, "");
-// static_assert(!detail::is_container<decltype(enumerate(0, 1., "string"))>::value, "");
+static_assert(detail::is_container<decltype(enumerate(as_array, 0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_container<decltype(enumerate(as_tuple, 0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_container<decltype(enumerate(as_tuple, 0, 1., "string"))>::value, "");
 static_assert(
     detail::is_container<decltype(enumerate(std::declval<std::vector<int>>()))>::value,
     "");
@@ -194,8 +183,13 @@ static_assert(
         decltype(enumerate(std::declval<int (&)[5]>(), std::declval<std::size_t>()))>::value,
     "");
 
-// static_assert(detail::is_container<decltype(enumerate_as<int>(0, 1, 2, 3, 4))>::value, "");
-// static_assert(!detail::is_container<decltype(enumerate_as<int>(0, 1., "string"))>::value, "");
+static_assert(detail::is_container<decltype(enumerate_as<int>(as_array, 0, 1, 2, 3, 4))>::value, "");
+static_assert(
+    !detail::is_container<decltype(enumerate_as<int>(as_tuple, 0, 1, 2, 3, 4))>::value,
+    "");
+static_assert(
+    !detail::is_container<decltype(enumerate_as<int>(as_tuple, 0, 1., "string"))>::value,
+    "");
 static_assert(
     detail::is_container<decltype(enumerate_as<int>(std::declval<std::vector<int>>()))>::value,
     "");

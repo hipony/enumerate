@@ -49,61 +49,61 @@ constexpr auto index_of<char const*>() -> int
 
 #if HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-// TEST_CASE("variadic_tag_t", "[enumerate]")
-// {
-//     SECTION("each")
-//     {
-//         auto counter = 0;
-//         enumerate(0, 1., "str").each([&](auto index, auto& value) {
-//             assert_same<decltype(index), std::size_t>();
+TEST_CASE("variadic_tag_t", "[enumerate]")
+{
+    SECTION("each")
+    {
+        auto counter = 0;
+        enumerate(as_tuple, 0, 1., "str").each([&](auto index, auto& value) {
+            assert_same<decltype(index), std::size_t>();
 
-//             REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
-//             ++counter;
-//         });
-//         REQUIRE(counter == 3);
-//     }
-//     SECTION("each as int")
-//     {
-//         auto counter = 0;
-//         enumerate_as<int>(0, 1., "str").each([&](auto index, auto& value) {
-//             assert_same<decltype(index), int>();
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("each as int")
+    {
+        auto counter = 0;
+        enumerate_as<int>(as_tuple, 0, 1., "str").each([&](auto index, auto& value) {
+            assert_same<decltype(index), int>();
 
-//             REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
-//             ++counter;
-//         });
-//         REQUIRE(counter == 3);
-//     }
-// }
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+}
 
 #endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-// TEST_CASE("variadic_array_tag_t", "[enumerate]")
-// {
-//     SECTION("for-range")
-//     {
-//         auto counter = 0;
-//         for (auto&& item : enumerate(0, 10, 20, 30, 40)) {
-//             assert_same<std::size_t, decltype(item.index)>();
-//             assert_same<int&, decltype(item.value)>();
+TEST_CASE("variadic_array_tag_t", "[enumerate]")
+{
+    SECTION("for-range")
+    {
+        auto counter = 0;
+        for (auto&& item : enumerate(as_array, 0, 10, 20, 30, 40)) {
+            assert_same<std::size_t, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
 
-//             REQUIRE(item.index * 10 == item.value);
-//             ++counter;
-//         }
-//         REQUIRE(counter == 5);
-//     }
-//     SECTION("for-range as int")
-//     {
-//         auto counter = 0;
-//         for (auto&& item : enumerate_as<int>(0, 10, 20, 30, 40)) {
-//             assert_same<int, decltype(item.index)>();
-//             assert_same<int&, decltype(item.value)>();
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+    SECTION("for-range as int")
+    {
+        auto counter = 0;
+        for (auto&& item : enumerate_as<int>(as_array, 0, 10, 20, 30, 40)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
 
-//             REQUIRE(item.index * 10 == item.value);
-//             ++counter;
-//         }
-//         REQUIRE(counter == 5);
-//     }
-// }
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 5);
+    }
+}
 
 TEST_CASE("iterator_pointer_tag_t", "[enumerate]")
 {
@@ -761,22 +761,22 @@ TEST_CASE("array_tag_t", "[enumerate]")
 
 #if HIPONY_ENUMERATE_HAS_CONSTEXPR
 
-// TEST_CASE("constexpr", "[enumerate]")
-// {
-//     struct function_object {
-//         constexpr auto operator()() const -> int
-//         {
-//             for (auto item : enumerate(0, 10, 20, 30, 40)) {
-//                 if (item.index == 3) {
-//                     return item.value;
-//                 }
-//             }
-//             return 0;
-//         }
-//     };
-//     constexpr auto const value = function_object{}();
-//     REQUIRE(value == 30);
-// }
+TEST_CASE("constexpr", "[enumerate]")
+{
+    struct function_object {
+        constexpr auto operator()() const -> int
+        {
+            for (auto item : enumerate(as_array, 0, 10, 20, 30, 40)) {
+                if (item.index == 3) {
+                    return item.value;
+                }
+            }
+            return 0;
+        }
+    };
+    constexpr auto const value = function_object{}();
+    REQUIRE(value == 30);
+}
 
 #endif
 

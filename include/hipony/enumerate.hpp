@@ -256,16 +256,6 @@ struct array_tag_t {};
 template<typename Size, typename T, typename = void, typename...>
 struct tag;
 
-// template<typename Size, typename T, typename = void, typename...>
-// struct tag {
-//     using type = variadic_tag_t;
-// };
-
-// template<typename Size, typename T, typename T1, typename... Ts>
-// struct tag<Size, T, typename detail::enable_if_t<detail::is_same<T, T1, Ts...>()>, T1, Ts...> {
-//     using type = variadic_array_tag_t;
-// };
-
 template<typename Size, typename T, typename T1>
 struct tag<
     Size,
@@ -839,22 +829,65 @@ enumerate_as(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
-// template<typename T, std::size_t N>
-// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto enumerate(T(&&arr)[N]) noexcept
-//     -> decltype(enumerate(detail::span<detail::remove_cvref_t<T>, std::size_t, N>(arr)))
-// {
-//     return enumerate(detail::span<detail::remove_cvref_t<T>, std::size_t, N>(arr));
-// }
+struct as_tuple_t {
+    explicit as_tuple_t() = default;
+};
 
-// template<typename Size, typename T, Size N>
-// HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto enumerate_as(T(&&arr)[N])
-// noexcept
-//     -> decltype(enumerate_as<Size>(detail::span<detail::remove_cvref_t<T>, Size, N>(arr)))
-// {
-//     return enumerate_as<Size>(detail::span<detail::remove_cvref_t<T>, Size, N>(arr));
-// }
+template<typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+    detail::variadic_tag_t,
+    detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
+    T,
+    Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
+
+template<typename Size, typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate_as(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
+    dispatch_t<detail::variadic_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
+
+struct as_array_t {
+    explicit as_array_t() = default;
+};
+
+template<typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+    detail::variadic_array_tag_t,
+    detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
+    T,
+    Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
+
+template<typename Size, typename T, typename... Ts>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
+enumerate_as(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
+    dispatch_t<detail::variadic_array_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
+{
+    return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
+}
 
 } // namespace hipony_enumerate
+
+#ifndef HIPONY_AS_ARRAY_ALIASED
+#define HIPONY_AS_ARRAY_ALIASED
+using hipony_enumerate::as_array_t;
+HIPONY_ENUMERATE_CONSTEXPR auto const as_array = as_array_t{};
+#endif
+
+#ifndef HIPONY_AS_TUPLE_ALIASED
+#define HIPONY_AS_TUPLE_ALIASED
+using hipony_enumerate::as_tuple_t;
+HIPONY_ENUMERATE_CONSTEXPR auto const as_tuple = as_tuple_t{};
+#endif
 
 using hipony_enumerate::enumerate;
 using hipony_enumerate::enumerate_as;
