@@ -34,7 +34,7 @@ int main() {
 
 ## Features
 
-### As Size
+### `_as<type>` to specify the type of the `index` to cast to
 
 > If the size of a container is bigger than the maximum value for the specified type - the behavior is undefined.
 
@@ -131,6 +131,23 @@ int main() {
     for (auto&& item : enumerate(std::vector<int>{1, 2, 3, 4, 5})) {
         std::cout << item.index << '\n';
         std::cout << item.value << '\n';
+    }
+}
+```
+
+### Begin + End
+
+```cpp
+#include <hipony/enumerate.hpp>
+
+#include <list>
+#include <iostream>
+
+int main() {
+    using hipony::enumerate;
+    auto list = std::list{1, 2, 3, 4, 5};
+    for (auto&& [index, value] : enumerate(list.begin(), list.end())) {
+        std::cout << value << '\n';
     }
 }
 ```
