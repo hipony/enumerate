@@ -192,6 +192,9 @@ struct is_string_literal<char16_t const> : std::true_type {};
 template<>
 struct is_string_literal<char32_t const> : std::true_type {};
 
+template<typename T>
+using is_pointer = typename std::is_pointer<T>;
+
 template<typename T, typename = void>
 struct is_container : std::false_type {};
 
@@ -200,6 +203,17 @@ struct is_container<
     T,
     typename detail::void_t<decltype(std::declval<T>().begin()), decltype(std::declval<T>().end())>>
     : std::true_type {};
+
+template<typename T, typename = void>
+struct is_iterator : std::false_type {};
+
+template<typename T>
+struct is_iterator<
+    T,
+    typename detail::void_t<
+        decltype(std::declval<T&>() != std::declval<T&>()),
+        decltype(++std::declval<T&>()),
+        decltype(*std::declval<T&>())>> : std::true_type {};
 
 template<typename T, typename = void>
 struct is_tuple : std::false_type {};
@@ -231,6 +245,8 @@ using size_t = typename detail::size<Ts...>::type;
 
 struct variadic_tag_t {};
 struct variadic_array_tag_t {};
+struct iterator_pointer_tag_t {};
+struct iterator_tag_t {};
 struct container_tag_t {};
 struct tuple_tag_t {};
 struct pointer_tag_t {};
@@ -238,13 +254,36 @@ struct string_tag_t {};
 struct array_tag_t {};
 
 template<typename Size, typename T, typename = void, typename...>
-struct tag {
-    using type = variadic_tag_t;
+struct tag;
+
+// template<typename Size, typename T, typename = void, typename...>
+// struct tag {
+//     using type = variadic_tag_t;
+// };
+
+// template<typename Size, typename T, typename T1, typename... Ts>
+// struct tag<Size, T, typename detail::enable_if_t<detail::is_same<T, T1, Ts...>()>, T1, Ts...> {
+//     using type = variadic_array_tag_t;
+// };
+
+template<typename Size, typename T, typename T1>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::is_same<T, T1>() && detail::is_iterator<T>::value && detail::is_pointer<T>::value>,
+    T1> {
+    using type = iterator_pointer_tag_t;
 };
 
-template<typename Size, typename T, typename T1, typename... Ts>
-struct tag<Size, T, typename detail::enable_if_t<detail::is_same<T, T1, Ts...>()>, T1, Ts...> {
-    using type = variadic_array_tag_t;
+template<typename Size, typename T, typename T1>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::is_same<T, T1>() && detail::is_iterator<T>::value && !detail::is_pointer<T>::value>,
+    T1> {
+    using type = iterator_tag_t;
 };
 
 template<typename Size, typename T>
@@ -372,6 +411,10 @@ private:
     size_type _size;
 
 public:
+    HIPONY_ENUMERATE_CONSTEXPR span(pointer begin, pointer end)
+        : _ptr{begin}
+        , _size{static_cast<size_type>(end - begin)}
+    {}
     HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr, size_type size)
         : _ptr{ptr}
         , _size{size}
@@ -396,6 +439,36 @@ public:
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
     {
         return _size;
+    }
+};
+
+template<typename It, typename Size>
+class range_span {
+public:
+    using iterator       = It;
+    using const_iterator = It;
+    using size_type      = Size;
+
+private:
+    iterator _begin;
+    iterator _end;
+
+public:
+    HIPONY_ENUMERATE_CONSTEXPR range_span(iterator begin, iterator end)
+        : _begin{begin}
+        , _end{end}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> const_iterator
+    {
+        return _begin;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> const_iterator
+    {
+        return _end;
     }
 };
 
@@ -687,6 +760,17 @@ struct dispatch<detail::variadic_tag_t, Size, Ts...> {
 template<typename Size, typename T, typename... Ts>
 struct dispatch<detail::variadic_array_tag_t, Size, T, Ts...> {
     using type = detail::wrapper<Size, detail::array<detail::remove_rref_t<T>, sizeof...(Ts) + 1>>;
+};
+
+template<typename Size, typename T, typename T1>
+struct dispatch<detail::iterator_pointer_tag_t, Size, T, T1> {
+    using type = detail::
+        wrapper<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
+};
+
+template<typename Size, typename T, typename T1>
+struct dispatch<detail::iterator_tag_t, Size, T, T1> {
+    using type = detail::wrapper<Size, detail::range_span<detail::remove_ref_t<T>, Size>>;
 };
 
 template<typename Size, typename T>
