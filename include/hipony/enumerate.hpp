@@ -51,6 +51,12 @@
 #define HIPONY_ENUMERATE_NODISCARD /*[[nodiscard]]*/
 #endif
 
+#if HIPONY_ENUMERATE_HAS_MAYBE_UNUSED
+#define HIPONY_ENUMERATE_MAYBE_UNUSED [[maybe_unused]]
+#else
+#define HIPONY_ENUMERATE_MAYBE_UNUSED /*[[maybe_unused]]*/
+#endif
+
 namespace HIPONY_ENUMERATE_NAMESPACE {
 
 namespace hipony_enumerate {
@@ -880,13 +886,13 @@ enumerate_as(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
 #ifndef HIPONY_AS_ARRAY_ALIASED
 #define HIPONY_AS_ARRAY_ALIASED
 using hipony_enumerate::as_array_t;
-HIPONY_ENUMERATE_CONSTEXPR auto const as_array = as_array_t{};
+HIPONY_ENUMERATE_MAYBE_UNUSED HIPONY_ENUMERATE_CONSTEXPR auto const as_array = as_array_t{};
 #endif
 
 #ifndef HIPONY_AS_TUPLE_ALIASED
 #define HIPONY_AS_TUPLE_ALIASED
 using hipony_enumerate::as_tuple_t;
-HIPONY_ENUMERATE_CONSTEXPR auto const as_tuple = as_tuple_t{};
+HIPONY_ENUMERATE_MAYBE_UNUSED HIPONY_ENUMERATE_CONSTEXPR auto const as_tuple = as_tuple_t{};
 #endif
 
 using hipony_enumerate::enumerate;
