@@ -48,7 +48,7 @@ int main() {
     using hipony::enumerate_as;
     using hipony::as_array;
     for(auto&& [index, value] : enumerate_as<int>(as_array, 0, 1, 2, 3, 4)) {
-        static_assert(std::is_same_v<int, decltype(item.index)>);
+        static_assert(std::is_same_v<int, decltype(index)>);
     }
 }
 ```
