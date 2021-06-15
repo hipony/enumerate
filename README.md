@@ -31,7 +31,7 @@ int main() {
 * With C++14 we can use `enumerate` in constexpr context
   * On MSVC requires at least v19.15 for that, but only works with value enumeration before v19.28, eg `for (auto item : enumerate(as_array, 0, 1, 2, 3, 4))`, but not anything that references anything.
   * On GCC requires at least 5.4
-* With C++14 we can use `enumerate` with tuples via `.each` member function. It requires `auto` lambda parameters for it to work.
+* With C++14 we can use `enumerate` on tuples with lambdas with `auto` parameters. In C++11 we'd need to create a function object with appropriate overloads.
 
 ## Features
 
@@ -102,9 +102,42 @@ struct function_object {
 int main() {
     using hipony::enumerate;
     using hipony::as_tuple;
-    enumerate(as_tuple, 0, 1., "string").each(auto index, auto& value) {
+    enumerate(as_tuple, 0, 1., "string").each([](auto index, auto& value) {
         std::cout << value << '\n';
     });
+}
+```
+
+```cpp
+// C++11
+#include <hipony/enumerate.hpp>
+
+#include <iostream>
+
+struct function_object {
+    void operator()(std::size_t index, int& value) {
+        std::cout << index << ' ' << value << '\n';
+    }
+    void operator()(std::size_t index, double& value) {
+        std::cout << index << ' ' << value << '\n';
+    }
+    void operator()(std::size_t index, char const(&value)[7]) {
+        std::cout << index << ' ' << value << '\n';
+    }
+};
+
+// or
+// struct function_object {
+//     template<typename Size, typename T>
+//     void operator()(Size index, T& value) {
+//         std::cout << index << ' ' << value << '\n';
+//     }
+// };
+
+int main() {
+    using hipony::enumerate;
+    using hipony::as_tuple;
+    enumerate(as_tuple, 0, 1., "string").each(function_object{});
 }
 ```
 
@@ -204,9 +237,8 @@ int main() {
 
 int main() {
     using hipony::enumerate;
-    auto string = "01234";
-    for (auto&& item : enumerate(string)) {
-        std::cout << item.index << '\n';
+    for (auto&& item : enumerate("01234")) {
+        std::cout << item.index << ' ';
         std::cout << item.value << '\n';
     }
 }
@@ -222,7 +254,7 @@ int main() {
 int main() {
     using hipony::enumerate;
     int        ptr[] = {0, 1, 2, 3, 4};
-    auto const size = 3;
+    auto const size = 3u;
     for (auto&& item : enumerate(&ptr[0], size)) {
         std::cout << item.index << '\n';
         std::cout << item.value << '\n';
