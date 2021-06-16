@@ -10,12 +10,12 @@ It resembles the `views::enumerate` proposal vaguely, but not based on C++20 ran
 
 ```cpp
 #include <hipony/enumerate.hpp>
+#include <array>
 #include <iostream>
 
 int main() {
-    using hipony::enumerate_as;
-    using hipony::as_array;
-    for(auto&& [index, value] : enumerate_as<int>(as_array, 0, 1, 2, 3, 4)) {
+    std::array array{0, 1, 2, 3, 4, 5};
+    for(auto&& [index, value] : hipony::enumerate(array)) {
         std::cout << index << ' ' << value << '\n';
     }
 }
@@ -23,7 +23,9 @@ int main() {
 
 ## Performance
 
-[Compiler Explorer](https://godbolt.org/z/TGM5Wfaeh)
+[Compiler Explorer (iostream)](https://godbolt.org/z/6Ej7e5M3r)
+
+[Compiler Explorer (printf)](https://godbolt.org/z/95qr1arcW)
 
 ## Notes
 
