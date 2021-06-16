@@ -850,10 +850,8 @@ public:
 
     HIPONY_ENUMERATE_CONSTEXPR auto operator++() noexcept -> limited_iterator&
     {
-        if (_index < _max) {
-            _iterator++;
-            _index++;
-        }
+        _iterator++;
+        _index++;
         return *this;
     }
 
@@ -877,7 +875,7 @@ public:
     }
 };
 
-template<typename Size, typename Container>
+template<typename Size, typename Container, typename = void>
 struct limited_wrapper {
     using value_type = typename detail::remove_rref_t<Container>;
     using size_type  = Size;
@@ -911,6 +909,55 @@ struct limited_wrapper {
     {
         assert(size >= 0 && "Size is negative");
         return {size, size, data.end()};
+    }
+};
+
+template<typename Size, typename Container>
+struct limited_wrapper<
+    Size,
+    Container,
+    typename detail::enable_if_t<std::is_base_of<
+        std::random_access_iterator_tag,
+        typename std::iterator_traits<
+            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>> {
+    using value_type      = typename detail::remove_rref_t<Container>;
+    using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
+    using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
+    using size_type       = Size;
+
+    value_type data;
+    size_type  size;
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<size_type, decltype(data.begin())>
+    {
+        return {data.begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<size_type, decltype(data.begin())>
+    {
+        assert(size >= 0 && "Size is negative");
+        return {
+            ((data.end() - data.begin()) > static_cast<difference_type>(size))
+                ? (data.begin() + size)
+                : data.end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<size_type, decltype(data.begin())>
+    {
+        return {data.begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<size_type, decltype(data.begin())>
+    {
+        assert(size >= 0 && "Size is negative");
+        return {
+            ((data.end() - data.begin()) > static_cast<difference_type>(size))
+                ? (data.begin() + size)
+                : data.end()};
     }
 };
 
