@@ -10,6 +10,7 @@
 #ifndef HIPONY_ENUMERATE_HPP_INCLUDED
 #define HIPONY_ENUMERATE_HPP_INCLUDED
 
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <tuple>
@@ -284,6 +285,7 @@ struct variadic_array_tag_t {};
 struct iterator_pointer_tag_t {};
 struct iterator_tag_t {};
 struct container_tag_t {};
+struct container_size_tag_t {};
 struct tuple_tag_t {};
 struct pointer_tag_t {};
 struct string_tag_t {};
@@ -315,6 +317,17 @@ struct tag<
 template<typename Size, typename T>
 struct tag<Size, T, typename detail::enable_if_t<detail::is_container<T>::value>> {
     using type = container_tag_t;
+};
+
+template<typename Size, typename T, typename TSize>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::is_container<T>::value && std::is_integral<Size>::value
+        && std::is_convertible<TSize, Size>::value>,
+    TSize> {
+    using type = container_size_tag_t;
 };
 
 template<typename Size, typename T>
@@ -440,15 +453,21 @@ public:
     HIPONY_ENUMERATE_CONSTEXPR span(pointer begin, pointer end)
         : _ptr{begin}
         , _size{static_cast<size_type>(end - begin)}
-    {}
+    {
+        assert(_size >= 0 && "Size is negative");
+    }
     HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr, size_type size)
         : _ptr{ptr}
         , _size{size}
-    {}
+    {
+        assert(_size >= 0 && "Size is negative");
+    }
     HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr)
         : _ptr{ptr}
         , _size{N}
-    {}
+    {
+        assert(_size >= 0 && "Size is negative");
+    }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
         -> const_iterator
@@ -622,6 +641,37 @@ struct array {
     }
 };
 
+template<typename Container>
+struct propagation_wrapper {
+    using value_type = typename detail::remove_cvref_t<Container>;
+
+    value_type data;
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> decltype(data.begin())
+    {
+        return data.begin();
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> decltype(data.end())
+    {
+        return data.end();
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> decltype(data.begin())
+    {
+        return data.begin();
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> decltype(data.end())
+    {
+        return data.end();
+    }
+};
+
 template<typename T, typename IndexType>
 struct iterator_value {
     using index_type = IndexType;
@@ -746,6 +796,127 @@ struct wrapper {
     }
 };
 
+template<typename Size, typename InnerIterator>
+class limited_iterator {
+public:
+    using inner_iterator  = InnerIterator;
+    using inner_reference = decltype(*inner_iterator{});
+
+    using iterator_category = std::forward_iterator_tag;
+    using size_type         = Size;
+    using value_type        = iterator_value<inner_reference, size_type>;
+    using pointer           = iterator_value<inner_reference, size_type>;
+    using reference         = iterator_value<inner_reference, size_type>;
+
+private:
+    size_type      _max;
+    size_type      _index;
+    inner_iterator _iterator;
+
+public:
+    limited_iterator() = default;
+
+    HIPONY_ENUMERATE_CONSTEXPR limited_iterator(size_type max, inner_iterator iterator)
+        : _max{max}
+        , _index{0}
+        , _iterator{static_cast<inner_iterator&&>(iterator)}
+    {}
+
+    HIPONY_ENUMERATE_CONSTEXPR
+    limited_iterator(size_type max, size_type index, inner_iterator iterator)
+        : _max{max}
+        , _index{index}
+        , _iterator{static_cast<inner_iterator&&>(iterator)}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() noexcept -> reference
+    {
+        return {_index, *_iterator};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() const noexcept
+        -> reference
+    {
+        return {_index, *_iterator};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() noexcept -> pointer
+    {
+        return {_index, *_iterator};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() const noexcept
+        -> pointer
+    {
+        return {_index, *_iterator};
+    }
+
+    HIPONY_ENUMERATE_CONSTEXPR auto operator++() noexcept -> limited_iterator&
+    {
+        if (_index < _max) {
+            _iterator++;
+            _index++;
+        }
+        return *this;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD auto operator++(int) noexcept -> limited_iterator
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
+    operator==(limited_iterator const& lhs, limited_iterator const& rhs) noexcept -> bool
+    {
+        return lhs._index == rhs._index || lhs._iterator == rhs._iterator;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
+    operator!=(limited_iterator const& lhs, limited_iterator const& rhs) noexcept -> bool
+    {
+        return !(lhs == rhs);
+    }
+};
+
+template<typename Size, typename Container>
+struct limited_wrapper {
+    using value_type = typename detail::remove_rref_t<Container>;
+    using size_type  = Size;
+
+    value_type data;
+    size_type  size;
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> limited_iterator<size_type, decltype(data.begin())>
+    {
+        assert(size >= 0 && "Size is negative");
+        return {size, data.begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> limited_iterator<size_type, decltype(data.begin())>
+    {
+        assert(size >= 0 && "Size is negative");
+        return {size, size, data.end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> limited_iterator<size_type, decltype(data.begin())>
+    {
+        assert(size >= 0 && "Size is negative");
+        return {size, data.begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> limited_iterator<size_type, decltype(data.begin())>
+    {
+        assert(size >= 0 && "Size is negative");
+        return {size, size, data.end()};
+    }
+};
+
 template<typename Size, typename T, typename U = T>
 struct tuple_wrapper;
 
@@ -802,6 +973,12 @@ struct dispatch<detail::iterator_tag_t, Size, T, T1> {
 template<typename Size, typename T>
 struct dispatch<detail::container_tag_t, Size, T> {
     using type = detail::wrapper<Size, detail::remove_rref_t<T>>;
+};
+
+template<typename Size, typename T, typename TSize>
+struct dispatch<detail::container_size_tag_t, Size, T, TSize> {
+    using type
+        = detail::propagation_wrapper<detail::limited_wrapper<Size, detail::remove_rref_t<T>>>;
 };
 
 template<typename Size, typename T>

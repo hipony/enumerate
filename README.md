@@ -173,7 +173,29 @@ int main() {
 }
 ```
 
+### Container + Size
+
+> If the size is a negative number - the behavior is undefined.
+> If the size is bigger than the container.size() - enumeration will end at the container.size()
+
+```cpp
+#include <hipony/enumerate.hpp>
+
+#include <array>
+#include <iostream>
+
+int main() {
+    using hipony::enumerate;
+    auto array = std::array{1, 2, 3, 4, 5};
+    for (auto&& [index, value] : enumerate(array, 3u)) {
+        std::cout << value << '\n';
+    }
+}
+```
+
 ### Begin + End
+
+> If the End iterator is not reachable from the Begin iterator - the behavior is undefined.
 
 ```cpp
 #include <hipony/enumerate.hpp>
@@ -245,6 +267,8 @@ int main() {
 ```
 
 ### Pointers + Size
+
+> If the size is a negative number - the behavior is undefined.
 
 ```cpp
 #include <hipony/enumerate.hpp>

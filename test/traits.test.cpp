@@ -107,10 +107,39 @@ static_assert(
     std::is_same<detail::tag_t<std::size_t, std::array<int, 4>>, detail::container_tag_t>::value,
     "");
 static_assert(
+    std::is_same<detail::tag_t<std::size_t, std::list<int>>, detail::container_tag_t>::value,
+    "");
+static_assert(
     std::is_same<detail::tag_t<std::size_t, std::string>, detail::container_tag_t>::value,
     "");
 static_assert(
     std::is_same<detail::tag_t<std::size_t, std::map<int, int>>, detail::container_tag_t>::value,
+    "");
+
+static_assert(
+    std::is_same<
+        detail::tag_t<std::size_t, std::vector<int>, void, std::size_t>,
+        detail::container_size_tag_t>::value,
+    "");
+static_assert(
+    std::is_same<
+        detail::tag_t<std::size_t, std::array<int, 4>, void, std::size_t>,
+        detail::container_size_tag_t>::value,
+    "");
+static_assert(
+    std::is_same<
+        detail::tag_t<std::size_t, std::list<int>, void, std::size_t>,
+        detail::container_size_tag_t>::value,
+    "");
+static_assert(
+    std::is_same<
+        detail::tag_t<std::size_t, std::string, void, std::size_t>,
+        detail::container_size_tag_t>::value,
+    "");
+static_assert(
+    std::is_same<
+        detail::tag_t<std::size_t, std::map<int, int>, void, std::size_t>,
+        detail::container_size_tag_t>::value,
     "");
 
 static_assert(
