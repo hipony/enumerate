@@ -50,7 +50,7 @@ static_assert(!detail::is_container<std::tuple<int, double>>::value, "");
 static_assert(!detail::is_container<std::pair<int, double>>::value, "");
 
 static_assert(!detail::is_tuple<int>::value, "");
-static_assert(detail::is_tuple<std::array<int, 1>>::value, "");
+static_assert(!detail::is_tuple<std::array<int, 1>>::value, "");
 static_assert(!detail::is_tuple<std::vector<int>>::value, "");
 static_assert(!detail::is_tuple<std::map<int, int>>::value, "");
 static_assert(!detail::is_tuple<std::string>::value, "");

@@ -258,8 +258,9 @@ struct is_tuple : std::false_type {};
 template<typename T>
 struct is_tuple<
     T,
-    typename detail::
-        void_t<decltype(std::tuple_size<T>::value), decltype(std::get<0>(std::declval<T>()))>>
+    typename detail::enable_if_t<
+        !detail::is_container<T>::value,
+        detail::void_t<decltype(std::tuple_size<T>::value), decltype(std::get<0>(std::declval<T>()))>>>
     : std::true_type {};
 
 template<typename = void, typename = void, typename = void>
@@ -331,11 +332,7 @@ struct tag<
 };
 
 template<typename Size, typename T>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<
-        detail::is_tuple<detail::decay_t<T>>::value && !detail::is_container<T>::value>> {
+struct tag<Size, T, typename detail::enable_if_t<detail::is_tuple<detail::decay_t<T>>::value>> {
     using type = tuple_tag_t;
 };
 
