@@ -60,6 +60,22 @@
 
 namespace HIPONY_ENUMERATE_NAMESPACE {
 
+#if !defined(HIPONY_AS_ARRAY_HPP_INCLUDED) || HIPONY_ENUMERATE_AS_ARRAY_ENABLED
+#define HIPONY_AS_ARRAY_HPP_INCLUDED
+struct as_array_tag_t {
+    explicit as_array_tag_t() = default;
+};
+HIPONY_ENUMERATE_MAYBE_UNUSED HIPONY_ENUMERATE_CONSTEXPR auto const as_array = as_array_tag_t{};
+#endif
+
+#if !defined(HIPONY_AS_TUPLE_HPP_INCLUDED) || HIPONY_ENUMERATE_AS_TUPLE_ENABLED
+#define HIPONY_AS_TUPLE_HPP_INCLUDED
+struct as_tuple_tag_t {
+    explicit as_tuple_tag_t() = default;
+};
+HIPONY_ENUMERATE_MAYBE_UNUSED HIPONY_ENUMERATE_CONSTEXPR auto const as_tuple = as_tuple_tag_t{};
+#endif
+
 namespace hipony_enumerate {
 
 namespace detail {
@@ -836,13 +852,11 @@ enumerate_as(T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
-struct as_tuple_t {
-    explicit as_tuple_t() = default;
-};
+using HIPONY_ENUMERATE_NAMESPACE::as_tuple_tag_t;
 
 template<typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
-enumerate(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+enumerate(as_tuple_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     detail::variadic_tag_t,
     detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
     T,
@@ -853,19 +867,17 @@ enumerate(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
 
 template<typename Size, typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
-enumerate_as(as_tuple_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
+enumerate_as(as_tuple_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
     dispatch_t<detail::variadic_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
 {
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
-struct as_array_t {
-    explicit as_array_t() = default;
-};
+using HIPONY_ENUMERATE_NAMESPACE::as_array_tag_t;
 
 template<typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
-enumerate(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
+enumerate(as_array_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
     detail::variadic_array_tag_t,
     detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
     T,
@@ -876,25 +888,13 @@ enumerate(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
 
 template<typename Size, typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
-enumerate_as(as_array_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
+enumerate_as(as_array_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
     dispatch_t<detail::variadic_array_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
 {
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
 } // namespace hipony_enumerate
-
-#ifndef HIPONY_AS_ARRAY_ALIASED
-#define HIPONY_AS_ARRAY_ALIASED
-using hipony_enumerate::as_array_t;
-HIPONY_ENUMERATE_MAYBE_UNUSED HIPONY_ENUMERATE_CONSTEXPR auto const as_array = as_array_t{};
-#endif
-
-#ifndef HIPONY_AS_TUPLE_ALIASED
-#define HIPONY_AS_TUPLE_ALIASED
-using hipony_enumerate::as_tuple_t;
-HIPONY_ENUMERATE_MAYBE_UNUSED HIPONY_ENUMERATE_CONSTEXPR auto const as_tuple = as_tuple_t{};
-#endif
 
 using hipony_enumerate::enumerate;
 using hipony_enumerate::enumerate_as;

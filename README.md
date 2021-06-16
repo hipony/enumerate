@@ -4,7 +4,7 @@
 
 C++11 compatible version of `enumerate`.
 
-An adapter for "range-like" things whose value type is a struct with `index` and `value` members representing respectively the position and the value of the elements of the passed range.
+An adapter for "range-like" (and more) things which provides a range with a value type of struct with `index` and `value` members representing respectively the position and the value of the elements of the passed range.
 
 It resembles the `views::enumerate` proposal vaguely, but not based on C++20 ranges.
 
@@ -115,21 +115,21 @@ int main() {
 #include <iostream>
 
 struct function_object {
-    void operator()(std::size_t index, int& value) {
-        std::cout << index << ' ' << value << '\n';
-    }
-    void operator()(std::size_t index, double& value) {
-        std::cout << index << ' ' << value << '\n';
-    }
-    void operator()(std::size_t index, char const(&value)[7]) {
+    template<typename Size, typename T>
+    void operator()(Size index, T& value) {
         std::cout << index << ' ' << value << '\n';
     }
 };
 
 // or
 // struct function_object {
-//     template<typename Size, typename T>
-//     void operator()(Size index, T& value) {
+//     void operator()(std::size_t index, int& value) {
+//         std::cout << index << ' ' << value << '\n';
+//     }
+//     void operator()(std::size_t index, double& value) {
+//         std::cout << index << ' ' << value << '\n';
+//     }
+//     void operator()(std::size_t index, char const(&value)[7]) {
 //         std::cout << index << ' ' << value << '\n';
 //     }
 // };
@@ -273,7 +273,13 @@ find_package(hipony-enumerate)
 target_link_libraries(app PRIVATE hipony::enumerate)
 ```
 
-## Developing
+## Compatibility
+
+The library provides the `HIPONY_ENUMERATE_NAMESPACE` macro to specify a different from the default `hipony` namespace. It encapsulates all the internals in the `hipony_enumerate` namespace to avoid accidental ODR conflicts by changing the external namespace.
+
+Additionally, library uses tag types `as_array_tag_t` and `as_tuple_tag_t` in the interface. For potential reuse in other libraries in the `hipony` namespace or related, they are encapsulated by the `HIPONY_AS_ARRAY_HPP_INCLUDED`/`HIPONY_AS_TUPLE_HPP_INCLUDED` guards with additional flags `HIPONY_ENUMERATE_AS_ARRAY_ENABLED`/`HIPONY_ENUMERATE_AS_TUPLE_ENABLED` to force the declaration of the types.
+
+## Contributing
 
 Project provides a `conanfile.txt` to pull in dependencies for testing, but uses a transparent integration otherwise. If used with another package manager - one should make sure the directory with config files is visible for `find_package`.
 
