@@ -49,7 +49,7 @@ constexpr auto index_of<char const*>() -> int
 
 #if HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-TEST_CASE("variadic_tag_t", "[enumerate]")
+TEST_CASE("as_tuple", "[enumerate]")
 {
     SECTION("each")
     {
@@ -77,7 +77,7 @@ TEST_CASE("variadic_tag_t", "[enumerate]")
 
 #endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-TEST_CASE("variadic_array_tag_t", "[enumerate]")
+TEST_CASE("as_array", "[enumerate]")
 {
     SECTION("for-range")
     {
@@ -359,6 +359,564 @@ TEST_CASE("container_tag_t", "[enumerate]")
                 ++counter;
             }
             REQUIRE(counter == 5);
+        }
+    }
+    SECTION("list")
+    {
+        SECTION("prvalue")
+        {
+            auto counter = 0;
+            for (auto&& item : enumerate(std::list<int>({0, 10, 20, 30, 40}))) {
+                assert_same<int&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("lvalue")
+        {
+            auto counter = 0;
+            auto list    = std::list<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate(list)) {
+                assert_same<decltype(list)::size_type, decltype(item.index)>();
+                assert_same<decltype(list)::value_type&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate(list)) {
+                assert_same<decltype(list)::size_type, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(list)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 5);
+        }
+    }
+}
+
+TEST_CASE("container_size_tag_t", "[enumerate]")
+{
+    SECTION("array")
+    {
+        SECTION("prvalue")
+        {
+            auto       counter = 0;
+            auto const size    = 3u;
+            for (auto&& item : enumerate(std::array<int, 5>({0, 10, 20, 30, 40}), size)) {
+                assert_same<int&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("lvalue")
+        {
+            auto       counter = 0;
+            auto       array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 3u;
+            for (auto&& item : enumerate(array, size)) {
+                assert_same<decltype(array)::size_type, decltype(item.index)>();
+                assert_same<decltype(array)::value_type&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != array.size());
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 3u;
+            for (auto&& item : enumerate(array, size)) {
+                assert_same<decltype(array)::size_type, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != array.size());
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            for (auto&& item : enumerate_as<int>(array, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != array.size());
+        }
+        SECTION("more")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 6;
+            for (auto&& item : enumerate_as<int>(array, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == array.size());
+        }
+        SECTION("exact")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 5;
+            for (auto&& item : enumerate_as<int>(array, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == array.size());
+        }
+        SECTION("zero")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 0>({});
+            auto const size    = 0;
+            for (auto&& item : enumerate_as<int>(array, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == array.size());
+        }
+        SECTION("zero-more")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 0>({});
+            auto const size    = 1;
+            for (auto&& item : enumerate_as<int>(array, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == array.size());
+        }
+    }
+    SECTION("vector")
+    {
+        SECTION("prvalue")
+        {
+            auto       counter = 0;
+            auto const size    = 3u;
+            for (auto&& item : enumerate(std::vector<int>({0, 10, 20, 30, 40}), size)) {
+                assert_same<int&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("lvalue")
+        {
+            auto       counter = 0;
+            auto       vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 3u;
+            for (auto&& item : enumerate(vector, size)) {
+                assert_same<decltype(vector)::size_type, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != vector.size());
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 3u;
+            for (auto&& item : enumerate(vector, size)) {
+                assert_same<decltype(vector)::size_type, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != vector.size());
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            for (auto&& item : enumerate_as<int>(vector, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != vector.size());
+        }
+        SECTION("more")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 6;
+            for (auto&& item : enumerate_as<int>(vector, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == vector.size());
+        }
+        SECTION("exact")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 5;
+            for (auto&& item : enumerate_as<int>(vector, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == vector.size());
+        }
+        SECTION("zero")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({});
+            auto const size    = 0;
+            for (auto&& item : enumerate_as<int>(vector, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == vector.size());
+        }
+        SECTION("zero-more")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({});
+            auto const size    = 1;
+            for (auto&& item : enumerate_as<int>(vector, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == vector.size());
+        }
+    }
+    SECTION("string")
+    {
+        SECTION("prvalue")
+        {
+            auto       counter = 0;
+            auto const size    = 3u;
+            for (auto&& item : enumerate(std::string("01234"), size)) {
+                assert_same<char&, decltype(item.value)>();
+
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("lvalue")
+        {
+            auto       counter = 0;
+            auto       string  = std::string("01234");
+            auto const size    = 3u;
+            for (auto&& item : enumerate(string, size)) {
+                assert_same<decltype(string)::size_type, decltype(item.index)>();
+                assert_same<decltype(string)::value_type&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != string.size());
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            auto const size    = 3u;
+            for (auto&& item : enumerate(string, size)) {
+                assert_same<decltype(string)::size_type, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != string.size());
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            auto const size    = 3;
+            for (auto&& item : enumerate_as<int>(string, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != string.size());
+        }
+        SECTION("more")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            auto const size    = 6;
+            for (auto&& item : enumerate_as<int>(string, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == string.size());
+        }
+        SECTION("exact")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            auto const size    = 5;
+            for (auto&& item : enumerate_as<int>(string, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == string.size());
+        }
+        SECTION("zero")
+        {
+            auto       counter = 0;
+            auto const string  = std::string();
+            auto const size    = 0;
+            for (auto&& item : enumerate_as<int>(string, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == string.size());
+        }
+        SECTION("zero-more")
+        {
+            auto       counter = 0;
+            auto const string  = std::string();
+            auto const size    = 1;
+            for (auto&& item : enumerate_as<int>(string, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == string.size());
+        }
+    }
+    SECTION("list")
+    {
+        SECTION("prvalue")
+        {
+            auto       counter = 0;
+            auto const size    = 3u;
+            for (auto&& item : enumerate(std::list<int>({0, 10, 20, 30, 40}), size)) {
+                assert_same<int&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("lvalue")
+        {
+            auto       counter = 0;
+            auto       list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const size    = 3u;
+            for (auto&& item : enumerate(list, size)) {
+                assert_same<decltype(list)::size_type, decltype(item.index)>();
+                assert_same<decltype(list)::value_type&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != list.size());
+        }
+        SECTION("const")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const size    = 3u;
+            for (auto&& item : enumerate(list, size)) {
+                assert_same<decltype(list)::size_type, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != list.size());
+        }
+        SECTION("as int")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            for (auto&& item : enumerate_as<int>(list, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != list.size());
+        }
+        SECTION("more")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const size    = 6;
+            for (auto&& item : enumerate_as<int>(list, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == list.size());
+        }
+        SECTION("exact")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const size    = 5;
+            for (auto&& item : enumerate_as<int>(list, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == list.size());
+        }
+        SECTION("zero")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({});
+            auto const size    = 0;
+            for (auto&& item : enumerate_as<int>(list, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter == list.size());
+        }
+        SECTION("zero-more")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({});
+            auto const size    = 1;
+            for (auto&& item : enumerate_as<int>(list, size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter != size);
+            REQUIRE(counter == list.size());
         }
     }
 }
