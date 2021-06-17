@@ -95,6 +95,24 @@ struct function_object {
 
 ### Tuples
 
+For tuples we use a special member function `.each`. The library checks for a tuple protocol with `std::tuple_size` specialized, so practically a user should be able to pass a custom tuple. You also can directly invoke the overload with a special `as_tuple` tag.
+
+```cpp
+// C++14
+#include <hipony/enumerate.hpp>
+
+#include <tuple>
+#include <iostream>
+
+int main() {
+    using hipony::enumerate;
+    std::tuple tuple = {0, 1., "string"};
+    enumerate(tuple).each([](auto index, auto& value) {
+        std::cout << value << '\n';
+    });
+}
+```
+
 ```cpp
 // C++14
 #include <hipony/enumerate.hpp>
