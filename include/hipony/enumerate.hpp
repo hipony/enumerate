@@ -72,6 +72,12 @@
 #define HIPONY_ENUMERATE_MAYBE_UNUSED /*[[maybe_unused]]*/
 #endif
 
+#if defined(__cpp_char8_t)
+#define HIPONY_ENUMERATE_HAS_CHAR8 __cpp_char8_t >= 201811L
+#else
+#define HIPONY_ENUMERATE_HAS_CHAR8 HIPONY_ENUMERATE_CPP20_OR_GREATER
+#endif
+
 namespace HIPONY_ENUMERATE_NAMESPACE {
 
 #if !defined(HIPONY_AS_ARRAY_HPP_INCLUDED) || HIPONY_ENUMERATE_AS_ARRAY_ENABLED
@@ -216,7 +222,7 @@ struct is_string_literal<char const> : std::true_type {};
 template<>
 struct is_string_literal<wchar_t const> : std::true_type {};
 
-#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+#if HIPONY_ENUMERATE_HAS_CHAR8
 
 template<>
 struct is_string_literal<char8_t const> : std::true_type {};
@@ -356,7 +362,7 @@ struct tag<Size, wchar_t const*, typename detail::enable_if_t<std::is_integral<S
     using type = string_tag_t;
 };
 
-#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+#if HIPONY_ENUMERATE_HAS_CHAR8
 
 template<typename Size>
 struct tag<Size, char8_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
@@ -385,7 +391,7 @@ struct tag<Size, wchar_t const[N], typename detail::enable_if_t<std::is_integral
     using type = string_tag_t;
 };
 
-#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+#if HIPONY_ENUMERATE_HAS_CHAR8
 
 template<typename Size, Size N>
 struct tag<Size, char8_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
