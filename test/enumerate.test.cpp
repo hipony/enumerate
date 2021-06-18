@@ -1118,7 +1118,7 @@ TEST_CASE("string_tag_t", "[enumerate]")
         }
     }
 
-#if HIPONY_ENUMERATE_CPP20_OR_GREATER
+#if HIPONY_ENUMERATE_HAS_CHAR8
     SECTION("char8")
     {
         SECTION("prvalue")
@@ -1162,7 +1162,7 @@ TEST_CASE("string_tag_t", "[enumerate]")
             REQUIRE(counter == 5);
         }
     }
-#endif // HIPONY_ENUMERATE_CPP20_OR_GREATER
+#endif // HIPONY_ENUMERATE_HAS_CHAR8
 
     SECTION("char16")
     {
