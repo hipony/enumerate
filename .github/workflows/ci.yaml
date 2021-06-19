@@ -59,7 +59,7 @@ jobs:
                 conan install optional -if=build -b=missing \
                   -s compiler=${toolset} \
                   -s compiler.version=${version} \
-                  -s compiler.cppstd=${matrix.cppstd} \
+                  -s compiler.cppstd=${{matrix.cppstd}} \
                   -s compiler.libcxx=libstdc++11 \
                   -e CXX=${compiler}
               fi
@@ -68,13 +68,13 @@ jobs:
             conan install . -if=build -b=missing \
               -s compiler=${toolset} \
               -s compiler.version=${version} \
-              -s compiler.cppstd=${matrix.cppstd} \
+              -s compiler.cppstd=${{matrix.cppstd}} \
               -s compiler.libcxx=libstdc++11 \
               -e CXX=${compiler}
             cmake -Bbuild -H$GITHUB_WORKSPACE \
               -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_CXX_COMPILER=${compiler} \
-              -DCMAKE_CXX_STANDARD=${matrix.cppstd} \
+              -DCMAKE_CXX_STANDARD=${{matrix.cppstd}} \
               -DCMAKE_CXX_STANDARD_REQUIRED=ON \
               -DCMAKE_CXX_EXTENSIONS=OFF \
               -DHIPONY_ENUMERATE_AGGREGATES_ENABLED=${{matrix.aggregates}} \
