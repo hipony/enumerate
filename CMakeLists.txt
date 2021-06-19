@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
+option(HIPONY_ENUMERATE_AGGREGATES_ENABLED "Enable aggregate support" OFF)
+
 project(enumerate LANGUAGES CXX VERSION 1.0.0)
 
 include(CTest)
@@ -16,7 +18,21 @@ target_include_directories(
   INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
             "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
-add_subdirectory(test)
+if(HIPONY_ENUMERATE_AGGREGATES_ENABLED)
+  # We use QUIET for Conan integration, since there is no official CMake target for PFR yet
+  # but we encourage users to provide their own integration by other means
+  list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}")
+  find_package(pfr QUIET)
+  if(pfr_FOUND)
+    target_link_libraries(enumerate INTERFACE pfr::pfr)
+  endif()
+
+  target_compile_definitions(enumerate INTERFACE HIPONY_ENUMERATE_AGGREGATES_ENABLED)
+endif()
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
 
 configure_package_config_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hipony-enumerate-config.cmake.in"

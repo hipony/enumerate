@@ -11,6 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        aggregates: [0, 1]
         include:
           - toolset: gcc
             compiler: g++-6
@@ -76,6 +77,7 @@ jobs:
                 -DCMAKE_CXX_STANDARD=${cppstd} \
                 -DCMAKE_CXX_STANDARD_REQUIRED=ON \
                 -DCMAKE_CXX_EXTENSIONS=OFF \
+                -DHIPONY_ENUMERATE_AGGREGATES_ENABLED=${{matrix.aggregates}} \
                 -G Ninja
               cmake --build build
             done

@@ -16,5 +16,7 @@ Checks: "*,
     -cppcoreguidelines-avoid-c-arrays,
     -hicpp-avoid-c-arrays,
     -modernize-avoid-c-arrays,
+    -modernize-unary-static-assert,
+    -modernize-concat-nested-namespaces,
     -misc-non-private-member-variables-in-classes,
     -misc-unused-using-decls"

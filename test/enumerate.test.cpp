@@ -49,7 +49,7 @@ constexpr auto index_of<char const*>() -> int
 
 #if HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-TEST_CASE("as_tuple", "[enumerate]")
+TEST_CASE("as_tuple")
 {
     SECTION("each")
     {
@@ -77,7 +77,7 @@ TEST_CASE("as_tuple", "[enumerate]")
 
 #endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-TEST_CASE("as_array", "[enumerate]")
+TEST_CASE("as_array")
 {
     SECTION("for-range")
     {
@@ -105,7 +105,7 @@ TEST_CASE("as_array", "[enumerate]")
     }
 }
 
-TEST_CASE("iterator_pointer_tag_t", "[enumerate]")
+TEST_CASE("iterator_pointer_tag_t")
 {
     SECTION("array")
     {
@@ -148,7 +148,7 @@ TEST_CASE("iterator_pointer_tag_t", "[enumerate]")
     }
 }
 
-TEST_CASE("iterator_tag_t", "[enumerate]")
+TEST_CASE("iterator_tag_t")
 {
     SECTION("list")
     {
@@ -191,7 +191,7 @@ TEST_CASE("iterator_tag_t", "[enumerate]")
     }
 }
 
-TEST_CASE("container_tag_t", "[enumerate]")
+TEST_CASE("container_tag_t")
 {
     SECTION("array")
     {
@@ -416,7 +416,7 @@ TEST_CASE("container_tag_t", "[enumerate]")
     }
 }
 
-TEST_CASE("container_size_tag_t", "[enumerate]")
+TEST_CASE("container_size_tag_t")
 {
     SECTION("array")
     {
@@ -923,7 +923,7 @@ TEST_CASE("container_size_tag_t", "[enumerate]")
 
 #if HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-TEST_CASE("tuple_tag_t", "[enumerate]")
+TEST_CASE("tuple_tag_t")
 {
     SECTION("prvalue")
     {
@@ -980,7 +980,7 @@ TEST_CASE("tuple_tag_t", "[enumerate]")
 
 #endif // HIPONY_ENUMERATE_CPP14_OR_GREATER
 
-TEST_CASE("pointer_tag_t", "[enumerate]")
+TEST_CASE("pointer_tag_t")
 {
     SECTION("for-range")
     {
@@ -1029,7 +1029,7 @@ TEST_CASE("pointer_tag_t", "[enumerate]")
     }
 }
 
-TEST_CASE("string_tag_t", "[enumerate]")
+TEST_CASE("string_tag_t")
 {
     SECTION("char")
     {
@@ -1254,7 +1254,7 @@ TEST_CASE("string_tag_t", "[enumerate]")
     }
 }
 
-TEST_CASE("array_tag_t", "[enumerate]")
+TEST_CASE("array_tag_t")
 {
     // FIXME: The lifetime of the array prvalue will end after the function call returns
     // SECTION("prvalue")
@@ -1319,7 +1319,7 @@ TEST_CASE("array_tag_t", "[enumerate]")
 
 #if HIPONY_ENUMERATE_HAS_CONSTEXPR
 
-TEST_CASE("constexpr", "[enumerate]")
+TEST_CASE("constexpr")
 {
     struct function_object {
         constexpr auto operator()() const -> int
@@ -1334,6 +1334,70 @@ TEST_CASE("constexpr", "[enumerate]")
     };
     constexpr auto const value = function_object{}();
     REQUIRE(value == 30);
+}
+
+#endif
+
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+
+TEST_CASE("aggregate_tag_t")
+{
+    struct aggregate_t {
+        int         i;
+        double      d;
+        char const* str;
+    };
+    SECTION("prvalue")
+    {
+        auto counter = 0;
+        enumerate(aggregate_t{0, 1., "str"}).each([&](auto index, auto& value) {
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("lvalue")
+    {
+        auto counter   = 0;
+        auto aggregate = aggregate_t{0, 1., "str"};
+        enumerate(aggregate).each([&](auto index, auto& value) {
+            assert_same<decltype(index), std::size_t>();
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("const")
+    {
+        auto       counter   = 0;
+        auto const aggregate = aggregate_t{0, 1., "str"};
+        enumerate(aggregate).each([&](auto index, auto& value) {
+            assert_same<decltype(index), std::size_t>();
+            static_assert(
+                std::is_const<typename std::remove_reference<decltype(value)>::type>::value,
+                "Const propagation is broken");
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
+    SECTION("as int")
+    {
+        auto       counter   = 0;
+        auto const aggregate = aggregate_t{0, 1., "str"};
+        enumerate_as<int>(aggregate).each([&](auto index, auto& value) {
+            assert_same<decltype(index), int>();
+            static_assert(
+                std::is_const<typename std::remove_reference<decltype(value)>::type>::value,
+                "Const propagation is broken");
+
+            REQUIRE(index == index_of<typename std::decay<decltype(value)>::type>());
+            ++counter;
+        });
+        REQUIRE(counter == 3);
+    }
 }
 
 #endif

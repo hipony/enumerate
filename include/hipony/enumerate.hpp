@@ -78,6 +78,13 @@
 #define HIPONY_ENUMERATE_HAS_CHAR8 HIPONY_ENUMERATE_CPP20_OR_GREATER
 #endif
 
+#if HIPONY_ENUMERATE_AGGREGATES_ENABLED
+#include <boost/pfr.hpp>
+#define HIPONY_ENUMERATE_HAS_AGGREGATES HIPONY_ENUMERATE_CPP17_OR_GREATER
+#else
+#define HIPONY_ENUMERATE_HAS_AGGREGATES 0
+#endif
+
 namespace HIPONY_ENUMERATE_NAMESPACE {
 
 #if !defined(HIPONY_AS_ARRAY_HPP_INCLUDED) || HIPONY_ENUMERATE_AS_ARRAY_ENABLED
@@ -294,6 +301,10 @@ struct pointer_tag_t {};
 struct string_tag_t {};
 struct array_tag_t {};
 
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+struct aggregate_tag_t {};
+#endif
+
 template<typename Size, typename T, typename = void, typename...>
 struct tag;
 
@@ -428,6 +439,20 @@ struct tag<
     TSize> {
     using type = array_tag_t;
 };
+
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+
+template<typename Size, typename T>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        std::is_aggregate<T>::value && !std::is_polymorphic<T>::value && !detail::is_tuple<T>::value
+        && !std::is_array<T>::value>> {
+    using type = aggregate_tag_t;
+};
+
+#endif
 
 template<typename... Ts>
 using tag_t = typename tag<Ts...>::type;
@@ -996,6 +1021,29 @@ private:
     }
 };
 
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+
+template<typename Size, typename T>
+struct aggregate_wrapper {
+    using aggregate_type = typename detail::remove_rref_t<T>;
+    using size_type      = Size;
+
+    aggregate_type data;
+
+    template<typename F>
+    HIPONY_ENUMERATE_CONSTEXPR void each(F&& f)
+    {
+        using tuple_type = decltype(boost::pfr::structure_tie(data));
+        detail::tuple_wrapper<
+            Size,
+            detail::remove_rref_t<tuple_type>,
+            detail::remove_cvref_t<tuple_type>>{boost::pfr::structure_tie(data)}
+            .each(static_cast<F&&>(f));
+    }
+};
+
+#endif
+
 template<typename Tag = void, typename...>
 struct dispatch;
 
@@ -1056,6 +1104,15 @@ template<typename Size, typename T, Size N, typename TSize>
 struct dispatch<detail::array_tag_t, Size, T (&)[N], TSize> {
     using type = detail::wrapper<Size, detail::span<detail::remove_ref_t<T>, Size>>;
 };
+
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+
+template<typename Size, typename T>
+struct dispatch<detail::aggregate_tag_t, Size, T> {
+    using type = detail::aggregate_wrapper<Size, T>;
+};
+
+#endif
 
 template<typename... Ts>
 using dispatch_t = typename dispatch<Ts...>::type;
