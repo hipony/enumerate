@@ -30,6 +30,8 @@ if(HIPONY_ENUMERATE_AGGREGATES_ENABLED)
   target_compile_definitions(enumerate INTERFACE HIPONY_ENUMERATE_AGGREGATES_ENABLED)
 endif()
 
+add_subdirectory(manual)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()

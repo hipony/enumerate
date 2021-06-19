@@ -182,9 +182,9 @@ struct aggregate_t {
 int main() {
     using hipony::enumerate;
     auto aggregate = aggregate_t{0, 1., "2"};
-    for (auto&& [index, value] : enumerate(aggregate)) {
-        std::cout << value << '\n';
-    }
+    enumerate(aggregate).each([](auto index, auto&& value) {
+        std::cout << index << ' ' << value << '\n';
+    });
 }
 ```
 
