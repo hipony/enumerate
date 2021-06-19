@@ -79,6 +79,9 @@
 #endif
 
 #if HIPONY_ENUMERATE_AGGREGATES_ENABLED
+#if !HIPONY_ENUMERATE_CPP17_OR_GREATER
+#error Full C++17 support is required to use the Aggregates feature
+#endif
 #include <boost/pfr.hpp>
 #define HIPONY_ENUMERATE_HAS_AGGREGATES 1
 #else

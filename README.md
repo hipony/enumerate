@@ -163,6 +163,8 @@ int main() {
 
 ### [Optional] Simple Aggregates via `boost/pfr`
 
+> Requires C++17
+
 To enable the integration, use the `HIPONY_ENUMERATE_AGGREGATES_ENABLED` CMake option.
 
 ```cpp

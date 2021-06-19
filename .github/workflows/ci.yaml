@@ -24,6 +24,8 @@ jobs:
         aggregates: [0, 1]
         exclude:
           - compiler: "gcc-6"
+            cppstd: 17
+          - compiler: "gcc-6"
             cppstd: 20
           - compiler: "clang-3.9"
             cppstd: 17
