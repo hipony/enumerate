@@ -65,6 +65,10 @@ jobs:
           run: |
             for cppstd in ${{matrix.cppstd}}
             do
+              if [[ "${{matrix.aggregates}}" -eq "1" ]] && [[ "$cppstd" -le "14" ]]; then
+                continue
+              fi
+
               conan install . -if=build -b=missing \
                 -s compiler=${{matrix.toolset}} \
                 -s compiler.version=${{matrix.version}} \
