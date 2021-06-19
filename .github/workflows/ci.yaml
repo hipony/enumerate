@@ -65,8 +65,17 @@ jobs:
           run: |
             for cppstd in ${{matrix.cppstd}}
             do
-              if [[ "${{matrix.aggregates}}" -eq "1" ]] && [[ "$cppstd" -le "14" ]]; then
-                continue
+              if [[ "${{matrix.aggregates}}" -eq "1" ]]; then
+                if [[ "$cppstd" -le "14" ]]; then
+                  continue
+                else
+                  conan install optional -if=build -b=missing \
+                    -s compiler=${{matrix.toolset}} \
+                    -s compiler.version=${{matrix.version}} \
+                    -s compiler.cppstd=${cppstd} \
+                    -s compiler.libcxx=libstdc++11 \
+                    -e CXX=${{matrix.compiler}}
+                  fi
               fi
 
               conan install . -if=build -b=missing \
