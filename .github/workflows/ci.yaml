@@ -8,6 +8,7 @@ on:
 
 jobs:
   ubuntu:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -31,8 +32,6 @@ jobs:
           - compiler: "clang-5.0"
             cppstd: 20
 
-    runs-on: ubuntu-latest
-
     steps:
         - uses: actions/checkout@v2
 
@@ -40,7 +39,7 @@ jobs:
           run: |
             echo "deb http://archive.ubuntu.com/ubuntu bionic main universe" | sudo tee -a /etc/apt/sources.list
             sudo apt update
-            sudo apt install ninja-build ${{matrix.compiler}/gcc/g++}
+            sudo apt install ninja-build ${{matrix.compiler}}
             pip install conan
 
         - name: Build
