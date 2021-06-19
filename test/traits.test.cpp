@@ -70,15 +70,15 @@ struct user_container {
     int* _begin;
     int* _end;
     using size_type = int;
-    auto begin() const -> int*
+    HIPONY_ENUMERATE_NODISCARD auto begin() const -> int*
     {
         return _begin;
     }
-    auto end() const -> int*
+    HIPONY_ENUMERATE_NODISCARD auto end() const -> int*
     {
         return _end;
     }
-    auto size() const -> size_type
+    HIPONY_ENUMERATE_NODISCARD auto size() const -> size_type
     {
         return static_cast<size_type>(_end - _begin);
     }
@@ -180,6 +180,35 @@ static_assert(std::is_same<detail::tag_t<std::size_t, int[3]>, detail::array_tag
 static_assert(
     std::is_same<detail::tag_t<std::size_t, int[3], void, std::size_t>, detail::array_tag_t>::value,
     "");
+
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+
+struct empty_aggregates_t {};
+
+static_assert(
+    std::is_same<detail::tag_t<std::size_t, empty_aggregates_t>, detail::aggregate_tag_t>::value,
+    "");
+
+struct simple_aggregate_t {
+    int   i;
+    float f;
+    char  c;
+};
+
+static_assert(
+    std::is_same<detail::tag_t<std::size_t, simple_aggregate_t>, detail::aggregate_tag_t>::value,
+    "");
+
+struct base_t {};
+
+struct complex_aggregate_t : base_t {};
+
+// static_assert(
+//     !std::is_same<detail::tag_t<std::size_t, complex_aggregate_t>,
+//     detail::aggregate_tag_t>::value,
+//     "");
+
+#endif
 
 // Returned type
 

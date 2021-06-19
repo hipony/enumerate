@@ -8,47 +8,31 @@ on:
 
 jobs:
   ubuntu:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - toolset: gcc
-            compiler: g++-6
-            version: "6"
-            cppstd: "11 14 17"
-            install: g++-6
-          - toolset: gcc
-            compiler: g++-8
-            version: "8"
-            cppstd: "11 14 17 20"
-            install: g++-8
-          - toolset: gcc
-            compiler: g++-9
-            version: "9"
-            cppstd: "11 14 17 20"
-            install: g++-9
-          - toolset: gcc
-            compiler: g++-10
-            version: "10"
-            cppstd: "11 14 17 20"
-            install: g++-10
-          - toolset: clang
-            compiler: clang++-3.9
-            version: "3.9"
-            cppstd: "11 14"
-            install: clang-3.9
-          - toolset: clang
-            compiler: clang++-5.0
-            version: "5.0"
-            cppstd: "11 14 17"
-            install: clang-5.0
-          - toolset: clang
-            compiler: clang++-10
-            version: "10"
-            cppstd: "11 14 17 20"
-            install: clang-10
-
-    runs-on: ubuntu-latest
+        compiler:
+          - "gcc-6"
+          - "gcc-8"
+          - "gcc-9"
+          - "gcc-10"
+          - "clang-3.9"
+          - "clang-5.0"
+          - "clang-10"
+        cppstd: [11, 14, 17, 20]
+        aggregates: [0, 1]
+        exclude:
+          - compiler: "gcc-6"
+            cppstd: 17
+          - compiler: "gcc-6"
+            cppstd: 20
+          - compiler: "clang-3.9"
+            cppstd: 17
+          - compiler: "clang-3.9"
+            cppstd: 20
+          - compiler: "clang-5.0"
+            cppstd: 20
 
     steps:
         - uses: actions/checkout@v2
@@ -57,25 +41,44 @@ jobs:
           run: |
             echo "deb http://archive.ubuntu.com/ubuntu bionic main universe" | sudo tee -a /etc/apt/sources.list
             sudo apt update
-            sudo apt install ninja-build ${{matrix.install}}
+            compiler=${{matrix.compiler}}
+            compiler=${compiler/gcc/g++}
+            sudo apt install ninja-build ${compiler}
             pip install conan
 
         - name: Build
           run: |
-            for cppstd in ${{matrix.cppstd}}
-            do
-              conan install . -if=build -b=missing \
-                -s compiler=${{matrix.toolset}} \
-                -s compiler.version=${{matrix.version}} \
-                -s compiler.cppstd=${cppstd} \
-                -s compiler.libcxx=libstdc++11 \
-                -e CXX=${{matrix.compiler}}
-              cmake -Bbuild -H$GITHUB_WORKSPACE \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
-                -DCMAKE_CXX_STANDARD=${cppstd} \
-                -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-                -DCMAKE_CXX_EXTENSIONS=OFF \
-                -G Ninja
-              cmake --build build
-            done
+            compiler=${{matrix.compiler}}
+            toolset=${compiler%-*}
+            version=${compiler#*-}
+            compiler=${compiler/gcc/g++}
+            compiler=${compiler/clang/clang++}
+
+            if [[ "${{matrix.aggregates}}" -eq "1" ]]; then
+              if [[ "${{matrix.cppstd}}" -le "14" ]]; then
+                exit 0
+              else
+                conan install optional -if=build -b=missing \
+                  -s compiler=${toolset} \
+                  -s compiler.version=${version} \
+                  -s compiler.cppstd=${{matrix.cppstd}} \
+                  -s compiler.libcxx=libstdc++11 \
+                  -e CXX=${compiler}
+              fi
+            fi
+
+            conan install . -if=build -b=missing \
+              -s compiler=${toolset} \
+              -s compiler.version=${version} \
+              -s compiler.cppstd=${{matrix.cppstd}} \
+              -s compiler.libcxx=libstdc++11 \
+              -e CXX=${compiler}
+            cmake -Bbuild -H$GITHUB_WORKSPACE \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_COMPILER=${compiler} \
+              -DCMAKE_CXX_STANDARD=${{matrix.cppstd}} \
+              -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+              -DCMAKE_CXX_EXTENSIONS=OFF \
+              -DHIPONY_ENUMERATE_AGGREGATES_ENABLED=${{matrix.aggregates}} \
+              -G Ninja
+            cmake --build build

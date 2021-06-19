@@ -161,6 +161,35 @@ int main() {
 }
 ```
 
+### [Optional] Simple Aggregates via `boost/pfr`
+
+> Requires C++17
+
+To enable the integration, use the `HIPONY_ENUMERATE_AGGREGATES_ENABLED` CMake option.
+
+```cpp
+#include <hipony/enumerate.hpp>
+
+#include <string>
+#include <iostream>
+
+struct aggregate_t {
+    int         i;
+    double      d;
+    std::string str;
+};
+
+int main() {
+    using hipony::enumerate;
+    auto aggregate = aggregate_t{0, 1., "2"};
+    enumerate(aggregate).each([](auto index, auto&& value) {
+        std::cout << index << ' ' << value << '\n';
+    });
+}
+```
+
+The project uses Conan-provided config files for the `pfr` for dev purposes, but in practice a user only need to make sure that the header is visible when the option is enabled.
+
 ### Containers
 
 ```cpp

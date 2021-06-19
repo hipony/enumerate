@@ -50,7 +50,6 @@ BreakBeforeTernaryOperators: true
 BreakBeforeBinaryOperators: All
 BreakConstructorInitializers: BeforeComma
 ColumnLimit: 100
-ContinuationIndentWidth: 4
 CompactNamespaces: false
 Cpp11BracedListStyle: true
 FixNamespaceComments: true
