@@ -39,7 +39,9 @@ jobs:
           run: |
             echo "deb http://archive.ubuntu.com/ubuntu bionic main universe" | sudo tee -a /etc/apt/sources.list
             sudo apt update
-            sudo apt install ninja-build ${{matrix.compiler}}
+            compiler=${{matrix.compiler}}
+            compiler=${compiler/gcc/g++}
+            sudo apt install ninja-build ${compiler}
             pip install conan
 
         - name: Build
