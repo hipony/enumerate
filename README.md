@@ -30,10 +30,6 @@ int main() {
 ## Notes
 
 * With C++17 structured bindings we can bind member variables to convenient aliases
-* With C++14 we can use `enumerate` in constexpr context
-  * On MSVC requires at least v19.15 for that, but only works with value enumeration before v19.28, eg `for (auto item : enumerate(as_array, 0, 1, 2, 3, 4))`, but not anything that references anything.
-  * On GCC requires at least 5.4
-* With C++14 we can use `enumerate` on tuples with lambdas with `auto` parameters. In C++11 we'd need to create a function object with appropriate overloads.
 
 ## Features
 
@@ -56,6 +52,10 @@ int main() {
 ```
 
 ### Constexpr
+
+> Requires C++14
+
+On MSVC requires at least VS2019 (v19.20). But works only with value enumeration before v19.28, eg `for (auto item : enumerate(as_array, 0, 1, 2, 3, 4))`, but not anything that references anything.
 
 ```cpp
 // C++20
