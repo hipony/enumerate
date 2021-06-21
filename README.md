@@ -337,6 +337,12 @@ int main() {
 
 ## Installation
 
+### Package Managers
+
+* [Conan](https://conan.io/center/hipony-enumerate)
+
+### Manual
+
 It's a single-file header-only library, so you can put the `hipony/enumerate.hpp` in the `include` folder directly into the project tree.
 
 Alternatively, project provides CMake instructions for usage with `add_subdirectory` or `cmake install`.
