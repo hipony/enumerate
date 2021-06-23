@@ -236,19 +236,13 @@ static_assert(detail::is_range<decltype(enumerate_as<int>(std::array<int, 3>()))
 
 // container_size_tag_t
 static_assert(detail::is_range<decltype(enumerate(std::vector<int>(), std::size_t()))>::value, "");
-static_assert(
-    detail::is_range<decltype(enumerate_as<int>(std::vector<int>(), std::size_t()))>::value,
-    "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::vector<int>(), int()))>::value, "");
 static_assert(detail::is_range<decltype(enumerate(std::array<int, 3>(), std::size_t()))>::value, "");
-static_assert(
-    detail::is_range<decltype(enumerate_as<int>(std::array<int, 3>(), std::size_t()))>::value,
-    "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::array<int, 3>(), int()))>::value, "");
 
 // pointer_tag_t
 static_assert(detail::is_range<decltype(enumerate(std::declval<int*>(), std::size_t()))>::value, "");
-static_assert(
-    detail::is_range<decltype(enumerate_as<int>(std::declval<int*>(), std::size_t()))>::value,
-    "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::declval<int*>(), int))>::value, "");
 
 // array_tag_t
 static_assert(detail::is_range<decltype(enumerate(std::declval<int (&)[5]>()))>::value, "");
