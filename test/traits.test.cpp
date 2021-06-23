@@ -40,14 +40,14 @@ static_assert(std::is_same<detail::remove_rref_t<int*&>, int*&>::value, "");
 static_assert(std::is_same<detail::remove_rref_t<int const*>, int const*>::value, "");
 static_assert(std::is_same<detail::remove_rref_t<int const*&&>, int const*>::value, "");
 
-static_assert(!detail::is_container<int>::value, "");
-static_assert(!detail::is_container<int[2]>::value, "");
-static_assert(detail::is_container<std::array<int, 1>>::value, "");
-static_assert(detail::is_container<std::vector<int>>::value, "");
-static_assert(detail::is_container<std::map<int, int>>::value, "");
-static_assert(detail::is_container<std::string>::value, "");
-static_assert(!detail::is_container<std::tuple<int, double>>::value, "");
-static_assert(!detail::is_container<std::pair<int, double>>::value, "");
+static_assert(!detail::is_range<int>::value, "");
+static_assert(detail::is_range<int (&)[2]>::value, "");
+static_assert(detail::is_range<std::array<int, 1>>::value, "");
+static_assert(detail::is_range<std::vector<int>>::value, "");
+static_assert(detail::is_range<std::map<int, int>>::value, "");
+static_assert(detail::is_range<std::string>::value, "");
+static_assert(!detail::is_range<std::tuple<int, double>>::value, "");
+static_assert(!detail::is_range<std::pair<int, double>>::value, "");
 
 static_assert(!detail::is_tuple<int>::value, "");
 static_assert(detail::is_tuple<std::array<int, 1>>::value, "");
@@ -212,68 +212,70 @@ struct complex_aggregate_t : base_t {};
 
 // Returned type
 
-static_assert(detail::is_container<decltype(enumerate(as_array, 0, 1, 2, 3, 4))>::value, "");
-static_assert(!detail::is_container<decltype(enumerate(as_tuple, 0, 1, 2, 3, 4))>::value, "");
-static_assert(!detail::is_container<decltype(enumerate(as_tuple, 0, 1., "string"))>::value, "");
+// variadic_array_tag_t
+static_assert(detail::is_range<decltype(enumerate(as_array, 0, 1, 2, 3, 4))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(as_array, 0, 1, 2, 3, 4))>::value, "");
+
+// variadic_tuple_tag_t
+static_assert(!detail::is_range<decltype(enumerate(as_tuple, 0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_range<decltype(enumerate_as<int>(as_tuple, 0, 1, 2, 3, 4))>::value, "");
+static_assert(!detail::is_range<decltype(enumerate(as_tuple, 0, 1., "string"))>::value, "");
+static_assert(!detail::is_range<decltype(enumerate_as<int>(as_tuple, 0, 1., "string"))>::value, "");
+
+// tuple_tag_t
+static_assert(!detail::is_range<decltype(enumerate(std::tuple<int, int>()))>::value, "");
+static_assert(!detail::is_range<decltype(enumerate_as<int>(std::tuple<int, int>()))>::value, "");
+static_assert(!detail::is_range<decltype(enumerate(std::pair<int, int>()))>::value, "");
+static_assert(!detail::is_range<decltype(enumerate_as<int>(std::pair<int, int>()))>::value, "");
+
+// container_tag_t
+static_assert(detail::is_range<decltype(enumerate(std::vector<int>()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::vector<int>()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate(std::array<int, 3>()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::array<int, 3>()))>::value, "");
+
+// container_size_tag_t
+static_assert(detail::is_range<decltype(enumerate(std::vector<int>(), std::size_t()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::vector<int>(), int()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate(std::array<int, 3>(), std::size_t()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::array<int, 3>(), int()))>::value, "");
+
+// pointer_tag_t
+static_assert(detail::is_range<decltype(enumerate(std::declval<int*>(), std::size_t()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::declval<int*>(), int()))>::value, "");
+
+// array_tag_t
+static_assert(detail::is_range<decltype(enumerate(std::declval<int (&)[5]>()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::declval<int (&)[5]>()))>::value, "");
 static_assert(
-    detail::is_container<decltype(enumerate(std::declval<std::vector<int>>()))>::value,
+    detail::is_range<decltype(enumerate(std::declval<int (&)[5]>(), std::size_t()))>::value,
     "");
 static_assert(
-    detail::is_container<decltype(enumerate(std::declval<std::array<int, 3>>()))>::value,
-    "");
-static_assert(
-    !detail::is_container<decltype(enumerate(std::declval<std::tuple<int, int>>()))>::value,
-    "");
-static_assert(
-    !detail::is_container<decltype(enumerate(std::declval<std::pair<int, int>>()))>::value,
-    "");
-static_assert(
-    detail::is_container<
-        decltype(enumerate(std::declval<int*>(), std::declval<std::size_t>()))>::value,
-    "");
-static_assert(detail::is_container<decltype(enumerate("123456"))>::value, "");
-static_assert(
-    detail::is_container<decltype(enumerate("123456", std::declval<std::size_t>()))>::value,
-    "");
-static_assert(detail::is_container<decltype(enumerate(std::declval<int (&)[5]>()))>::value, "");
-static_assert(
-    detail::is_container<
-        decltype(enumerate(std::declval<int (&)[5]>(), std::declval<std::size_t>()))>::value,
+    detail::is_range<decltype(enumerate_as<int>(std::declval<int (&)[5]>(), int()))>::value,
     "");
 
-static_assert(detail::is_container<decltype(enumerate_as<int>(as_array, 0, 1, 2, 3, 4))>::value, "");
+// string_tag_t
+static_assert(detail::is_range<decltype(enumerate("123456"))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>("123456"))>::value, "");
+static_assert(detail::is_range<decltype(enumerate("123456", std::size_t()))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>("123456", int()))>::value, "");
+
+// iterator_pointer_tag_t
 static_assert(
-    !detail::is_container<decltype(enumerate_as<int>(as_tuple, 0, 1, 2, 3, 4))>::value,
+    detail::is_range<decltype(enumerate(std::declval<int*>(), std::declval<int*>()))>::value,
     "");
 static_assert(
-    !detail::is_container<decltype(enumerate_as<int>(as_tuple, 0, 1., "string"))>::value,
+    detail::is_range<decltype(enumerate_as<int>(std::declval<int*>(), std::declval<int*>()))>::value,
+    "");
+
+// iterator_tag_t
+static_assert(
+    detail::is_range<
+        decltype(enumerate(std::vector<int>().begin(), std::vector<int>().end()))>::value,
     "");
 static_assert(
-    detail::is_container<decltype(enumerate_as<int>(std::declval<std::vector<int>>()))>::value,
-    "");
-static_assert(
-    detail::is_container<decltype(enumerate_as<int>(std::declval<std::array<int, 3>>()))>::value,
-    "");
-static_assert(
-    !detail::is_container<decltype(enumerate_as<int>(std::declval<std::tuple<int, int>>()))>::value,
-    "");
-static_assert(
-    !detail::is_container<decltype(enumerate_as<int>(std::declval<std::pair<int, int>>()))>::value,
-    "");
-static_assert(
-    detail::is_container<
-        decltype(enumerate_as<int>(std::declval<int*>(), std::declval<int>()))>::value,
-    "");
-static_assert(detail::is_container<decltype(enumerate_as<int>("123456"))>::value, "");
-static_assert(
-    detail::is_container<decltype(enumerate_as<int>("123456", std::declval<int>()))>::value,
-    "");
-static_assert(
-    detail::is_container<decltype(enumerate_as<int>(std::declval<int (&)[5]>()))>::value,
-    "");
-static_assert(
-    detail::is_container<
-        decltype(enumerate_as<int>(std::declval<int (&)[5]>(), std::declval<int>()))>::value,
+    detail::is_range<
+        decltype(enumerate_as<int>(std::vector<int>().begin(), std::vector<int>().end()))>::value,
     "");
 
 } // namespace hipony_enumerate
