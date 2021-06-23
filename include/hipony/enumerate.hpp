@@ -82,6 +82,23 @@
 #define HIPONY_ENUMERATE_HAS_CHAR8 HIPONY_ENUMERATE_CPP20_OR_GREATER
 #endif
 
+#if defined(__has_include) && __has_include(<version>)
+#include <version>
+#define HIPONY_ENUMERATE_HAS_CONCEPTS (__cpp_lib_concepts >= 202002L)
+#define HIPONY_ENUMERATE_HAS_RANGES (__cpp_lib_ranges >= 201911L)
+#else
+#define HIPONY_ENUMERATE_HAS_CONCEPTS 0
+#define HIPONY_ENUMERATE_HAS_RANGES 0
+#endif
+
+#if HIPONY_ENUMERATE_HAS_CONCEPTS
+#include <concepts>
+#endif
+
+#if HIPONY_ENUMERATE_HAS_RANGES
+#include <ranges>
+#endif
+
 #if HIPONY_ENUMERATE_AGGREGATES_ENABLED
 #if !HIPONY_ENUMERATE_CPP17_OR_GREATER
 #error Full C++17 support is required to use the Aggregates feature
@@ -252,14 +269,35 @@ struct is_string_literal<char32_t const> : std::true_type {};
 template<typename T>
 using is_pointer = typename std::is_pointer<T>;
 
-template<typename T, typename = void>
-struct is_container : std::false_type {};
+#if HIPONY_ENUMERATE_HAS_RANGES
 
 template<typename T>
-struct is_container<
+struct is_range {
+    constexpr static auto value = std::ranges::range<T>;
+};
+
+#else
+
+template<typename T, typename = void>
+struct is_range : std::false_type {};
+
+template<typename T>
+struct is_range<
     T,
-    typename detail::void_t<decltype(std::declval<T>().begin()), decltype(std::declval<T>().end())>>
+    typename detail::
+        void_t<decltype(std::begin(std::declval<T>())), decltype(std::end(std::declval<T>()))>>
     : std::true_type {};
+
+#endif
+
+#if HIPONY_ENUMERATE_HAS_CONCEPTS
+
+template<typename T>
+struct is_iterator {
+    constexpr static auto value = std::forward_iterator<T>;
+};
+
+#else
 
 template<typename T, typename = void>
 struct is_iterator : std::false_type {};
@@ -271,6 +309,8 @@ struct is_iterator<
         decltype(std::declval<T&>() != std::declval<T&>()),
         decltype(++std::declval<T&>()),
         decltype(*std::declval<T&>())>> : std::true_type {};
+
+#endif
 
 template<typename T, typename = void>
 struct is_tuple : std::false_type {};
@@ -285,7 +325,10 @@ struct size {
 };
 
 template<typename T>
-struct size<void, T, typename detail::enable_if_t<detail::is_container<T>::value>> {
+struct size<
+    void,
+    T,
+    typename detail::enable_if_t<!std::is_array<T>::value && detail::is_range<T>::value>> {
     using type = typename T::size_type;
 };
 
@@ -297,7 +340,7 @@ struct size<Size, T, typename detail::enable_if_t<std::is_integral<Size>::value>
 template<typename... Ts>
 using size_t = typename detail::size<Ts...>::type;
 
-struct variadic_tag_t {};
+struct variadic_tuple_tag_t {};
 struct variadic_array_tag_t {};
 struct iterator_pointer_tag_t {};
 struct iterator_tag_t {};
@@ -336,7 +379,10 @@ struct tag<
 };
 
 template<typename Size, typename T>
-struct tag<Size, T, typename detail::enable_if_t<detail::is_container<T>::value>> {
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<!std::is_array<T>::value && detail::is_range<T>::value>> {
     using type = container_tag_t;
 };
 
@@ -345,7 +391,7 @@ struct tag<
     Size,
     T,
     typename detail::enable_if_t<
-        detail::is_container<T>::value && std::is_integral<Size>::value
+        !std::is_array<T>::value && detail::is_range<T>::value && std::is_integral<Size>::value
         && std::is_convertible<TSize, Size>::value>,
     TSize> {
     using type = container_size_tag_t;
@@ -356,7 +402,7 @@ struct tag<
     Size,
     T,
     typename detail::enable_if_t<
-        detail::is_tuple<detail::decay_t<T>>::value && !detail::is_container<T>::value>> {
+        detail::is_tuple<detail::decay_t<T>>::value && !detail::is_range<T>::value>> {
     using type = tuple_tag_t;
 };
 
@@ -1070,7 +1116,7 @@ template<typename Tag = void, typename...>
 struct dispatch;
 
 template<typename Size, typename... Ts>
-struct dispatch<detail::variadic_tag_t, Size, Ts...> {
+struct dispatch<detail::variadic_tuple_tag_t, Size, Ts...> {
     using type = detail::tuple_wrapper<Size, std::tuple<detail::remove_rref_t<Ts>...>>;
 };
 
@@ -1176,7 +1222,7 @@ using HIPONY_ENUMERATE_NAMESPACE::as_tuple_tag_t;
 template<typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
 enumerate(as_tuple_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_t<
-    detail::variadic_tag_t,
+    detail::variadic_tuple_tag_t,
     detail::size_t<detail::void_t<>, detail::remove_cvref_t<T>>,
     T,
     Ts...>
@@ -1187,7 +1233,7 @@ enumerate(as_tuple_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::dispatch_
 template<typename Size, typename T, typename... Ts>
 HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR inline auto
 enumerate_as(as_tuple_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
-    dispatch_t<detail::variadic_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
+    dispatch_t<detail::variadic_tuple_tag_t, detail::size_t<Size, detail::remove_cvref_t<T>>, T, Ts...>
 {
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }

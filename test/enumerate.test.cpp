@@ -103,6 +103,21 @@ TEST_CASE("as_array")
         }
         REQUIRE(counter == 5);
     }
+#if HIPONY_ENUMERATE_HAS_RANGES
+    SECTION("ranges")
+    {
+        auto counter = 0;
+        auto range   = enumerate_as<int>(as_array, 0, 10, 20, 30, 40);
+        for (auto&& item : range | std::ranges::views::take(3)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int&, decltype(item.value)>();
+
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+#endif
 }
 
 TEST_CASE("iterator_pointer_tag_t")
@@ -146,6 +161,22 @@ TEST_CASE("iterator_pointer_tag_t")
         }
         REQUIRE(counter == 5);
     }
+#if HIPONY_ENUMERATE_HAS_RANGES
+    SECTION("ranges")
+    {
+        auto       counter = 0;
+        auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+        auto const range   = enumerate_as<int>(array.begin(), array.end());
+        for (auto&& item : range | std::ranges::views::take(3)) {
+            assert_same<int const&, decltype(item.value)>();
+            assert_same<int, decltype(item.index)>();
+
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+#endif
 }
 
 TEST_CASE("iterator_tag_t")
@@ -189,6 +220,22 @@ TEST_CASE("iterator_tag_t")
         }
         REQUIRE(counter == 5);
     }
+#if HIPONY_ENUMERATE_HAS_RANGES
+    SECTION("ranges")
+    {
+        auto       counter = 0;
+        auto const list    = std::list<int>({0, 10, 20, 30, 40});
+        auto const range   = enumerate_as<int>(list.begin(), list.end());
+        for (auto&& item : range | std::ranges::views::take(3)) {
+            assert_same<int const&, decltype(item.value)>();
+            assert_same<int, decltype(item.index)>();
+
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+#endif
 }
 
 TEST_CASE("container_tag_t")
@@ -248,6 +295,23 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const range   = enumerate_as<int>(array);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
     SECTION("vector")
     {
@@ -304,6 +368,23 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const range   = enumerate_as<int>(vector);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
     SECTION("string")
     {
@@ -360,6 +441,23 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            auto const range   = enumerate_as<int>(string);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
     SECTION("list")
     {
@@ -413,6 +511,22 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const range   = enumerate_as<int>(list);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
 }
 
@@ -480,6 +594,25 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != array.size());
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(array, static_cast<int>(array.size()));
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&array[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != array.size());
+        }
+#endif
         SECTION("more")
         {
             auto       counter = 0;
@@ -607,6 +740,25 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != vector.size());
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(vector, static_cast<int>(vector.size()));
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&vector[item.index] == &item.value);
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != vector.size());
+        }
+#endif
         SECTION("more")
         {
             auto       counter = 0;
@@ -734,6 +886,25 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != string.size());
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(string, static_cast<int>(string.size()));
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value);
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != string.size());
+        }
+#endif
         SECTION("more")
         {
             auto       counter = 0;
@@ -858,6 +1029,24 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != list.size());
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(list, static_cast<int>(list.size()));
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+            REQUIRE(counter != list.size());
+        }
+#endif
         SECTION("more")
         {
             auto       counter = 0;
@@ -1027,6 +1216,24 @@ TEST_CASE("pointer_tag_t")
         }
         REQUIRE(counter == 5);
     }
+#if HIPONY_ENUMERATE_HAS_RANGES
+    SECTION("ranges")
+    {
+        auto       counter = 0;
+        int const  ptr[]   = {0, 10, 20, 30, 40};
+        auto const size    = static_cast<int>(sizeof(ptr) / sizeof(int));
+        auto const range   = enumerate_as<int>(&ptr[0], size);
+        for (auto&& item : range | std::ranges::views::take(3)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int const&, decltype(item.value)>();
+
+            REQUIRE(&ptr[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+#endif
 }
 
 TEST_CASE("string_tag_t")
@@ -1073,6 +1280,23 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto       string  = "01234";
+            auto const range   = enumerate_as<int>(string);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
     SECTION("wchar")
     {
@@ -1116,6 +1340,23 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto       string  = L"01234";
+            auto const range   = enumerate_as<int>(string);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<wchar_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
 
 #if HIPONY_ENUMERATE_HAS_CHAR8
@@ -1161,6 +1402,23 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto       string  = u8"01234";
+            auto const range   = enumerate_as<int>(string);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char8_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
 #endif // HIPONY_ENUMERATE_HAS_CHAR8
 
@@ -1207,6 +1465,23 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto       string  = u"01234";
+            auto const range   = enumerate_as<int>(string);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char16_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
 
     SECTION("char32")
@@ -1251,6 +1526,23 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
+#if HIPONY_ENUMERATE_HAS_RANGES
+        SECTION("ranges")
+        {
+            auto       counter = 0;
+            auto       string  = U"01234";
+            auto const range   = enumerate_as<int>(string);
+            for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<char32_t const&, decltype(item.value)>();
+
+                REQUIRE(&string[item.index] == &item.value); // NOLINT
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+#endif
     }
 }
 
@@ -1315,6 +1607,24 @@ TEST_CASE("array_tag_t")
         }
         REQUIRE(counter == 5);
     }
+#if HIPONY_ENUMERATE_HAS_RANGES
+    SECTION("ranges")
+    {
+        auto       counter     = 0;
+        int const  container[] = {0, 10, 20, 30, 40};
+        auto const range       = enumerate_as<int>(container);
+        for (auto&& item : range | std::ranges::views::take(3)) {
+            assert_same<int, decltype(item.index)>();
+            assert_same<int const&, decltype(item.value)>();
+
+            REQUIRE(&container[item.index] == &item.value);
+            REQUIRE(item.index * 10 == item.value);
+
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+#endif
 }
 
 #if HIPONY_ENUMERATE_HAS_CONSTEXPR
