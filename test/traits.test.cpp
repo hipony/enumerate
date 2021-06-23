@@ -242,7 +242,7 @@ static_assert(detail::is_range<decltype(enumerate_as<int>(std::array<int, 3>(), 
 
 // pointer_tag_t
 static_assert(detail::is_range<decltype(enumerate(std::declval<int*>(), std::size_t()))>::value, "");
-static_assert(detail::is_range<decltype(enumerate_as<int>(std::declval<int*>(), int))>::value, "");
+static_assert(detail::is_range<decltype(enumerate_as<int>(std::declval<int*>(), int()))>::value, "");
 
 // array_tag_t
 static_assert(detail::is_range<decltype(enumerate(std::declval<int (&)[5]>()))>::value, "");
