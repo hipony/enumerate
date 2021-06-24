@@ -33,9 +33,9 @@
 #define HIPONY_ENUMERATE_CPP20_OR_GREATER (HIPONY_ENUMERATE_CPLUSPLUS >= 202002L)
 
 #if defined(_MSC_VER)
-#define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC _MSC_VER > 1916
+#define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC (_MSC_VER > 1916)
 #else
-#define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC true
+#define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC 1
 #endif
 
 #if defined(__cpp_constexpr)
@@ -77,22 +77,29 @@
 #endif
 
 #if defined(__cpp_char8_t)
-#define HIPONY_ENUMERATE_HAS_CHAR8 __cpp_char8_t >= 201811L
+#define HIPONY_ENUMERATE_HAS_CHAR8 (__cpp_char8_t >= 201811L)
 #else
 #define HIPONY_ENUMERATE_HAS_CHAR8 HIPONY_ENUMERATE_CPP20_OR_GREATER
 #endif
 
 #if defined(__has_include) && __has_include(<version>)
 #include <version>
+#endif
+
+#if defined(__cpp_lib_concepts)
 #define HIPONY_ENUMERATE_HAS_CONCEPTS (__cpp_lib_concepts >= 202002L)
-#define HIPONY_ENUMERATE_HAS_RANGES (__cpp_lib_ranges >= 201911L)
 #else
 #define HIPONY_ENUMERATE_HAS_CONCEPTS 0
-#define HIPONY_ENUMERATE_HAS_RANGES 0
 #endif
 
 #if HIPONY_ENUMERATE_HAS_CONCEPTS
 #include <concepts>
+#endif
+
+#if defined(__cpp_lib_ranges)
+#define HIPONY_ENUMERATE_HAS_RANGES (__cpp_lib_ranges >= 201911L)
+#else
+#define HIPONY_ENUMERATE_HAS_RANGES 0
 #endif
 
 #if HIPONY_ENUMERATE_HAS_RANGES
