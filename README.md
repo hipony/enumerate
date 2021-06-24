@@ -6,7 +6,7 @@ C++11 compatible version of `enumerate`.
 
 An adapter for "range-like" (and more) things which provides a range with a value type of struct with `index` and `value` members representing respectively the position and the value of the elements of the passed range.
 
-It resembles the `views::enumerate` proposal vaguely, but not based on C++20 ranges.
+It's partially based on the `views::enumerate` proposal, but extends its features greately.
 
 ```cpp
 #include <hipony/enumerate.hpp>
@@ -47,6 +47,28 @@ int main() {
     using hipony::as_array;
     for(auto&& [index, value] : enumerate_as<int>(as_array, 0, 1, 2, 3, 4)) {
         static_assert(std::is_same_v<int, decltype(index)>);
+    }
+}
+```
+
+### Ranges
+
+> Clang doesn't yet have full support for Concepts and Ranges
+
+The `enumerate` wrapper is not yet a _view_, which requires a different dispatch based on the reference type.
+
+```cpp
+// C++20
+#include <hipony/enumerate.hpp>
+#include <array>
+#include <iostream>
+#include <ranges>
+
+int main() {
+    std::array array{0, 1, 2, 3, 4, 5};
+    auto range = hipony::enumerate(array);
+    for(auto&& [index, value] : range | std::ranges::views::take(3)) {
+        std::cout << index << ' ' << value << '\n';
     }
 }
 ```
