@@ -103,7 +103,7 @@ TEST_CASE("as_array")
         }
         REQUIRE(counter == 5);
     }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
     SECTION("ranges")
     {
         auto counter = 0;
@@ -161,7 +161,7 @@ TEST_CASE("iterator_pointer_tag_t")
         }
         REQUIRE(counter == 5);
     }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
     SECTION("ranges")
     {
         auto       counter = 0;
@@ -220,7 +220,7 @@ TEST_CASE("iterator_tag_t")
         }
         REQUIRE(counter == 5);
     }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
     SECTION("ranges")
     {
         auto       counter = 0;
@@ -295,7 +295,7 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -368,7 +368,7 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -441,7 +441,7 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -511,7 +511,7 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -594,7 +594,7 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != array.size());
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -740,7 +740,7 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != vector.size());
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -886,7 +886,7 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != string.size());
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1029,7 +1029,7 @@ TEST_CASE("container_size_tag_t")
             REQUIRE(counter == size);
             REQUIRE(counter != list.size());
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1216,7 +1216,7 @@ TEST_CASE("pointer_tag_t")
         }
         REQUIRE(counter == 5);
     }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
     SECTION("ranges")
     {
         auto       counter = 0;
@@ -1280,7 +1280,7 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1340,7 +1340,7 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1402,7 +1402,7 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1465,7 +1465,7 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1526,7 +1526,7 @@ TEST_CASE("string_tag_t")
             }
             REQUIRE(counter == 5);
         }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
         SECTION("ranges")
         {
             auto       counter = 0;
@@ -1607,7 +1607,7 @@ TEST_CASE("array_tag_t")
         }
         REQUIRE(counter == 5);
     }
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
     SECTION("ranges")
     {
         auto       counter     = 0;

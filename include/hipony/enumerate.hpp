@@ -35,7 +35,7 @@
 #if defined(_MSC_VER)
 #define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC (_MSC_VER > 1916)
 #else
-#define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC 1
+#define HIPONY_ENUMERATE_HAS_CONSTEXPR_MSVC true
 #endif
 
 #if defined(__cpp_constexpr)
@@ -89,7 +89,7 @@
 #if defined(__cpp_lib_concepts)
 #define HIPONY_ENUMERATE_HAS_CONCEPTS (__cpp_lib_concepts >= 202002L)
 #else
-#define HIPONY_ENUMERATE_HAS_CONCEPTS 0
+#define HIPONY_ENUMERATE_HAS_CONCEPTS false
 #endif
 
 #if HIPONY_ENUMERATE_HAS_CONCEPTS
@@ -99,7 +99,7 @@
 #if defined(__cpp_lib_ranges)
 #define HIPONY_ENUMERATE_HAS_RANGES (__cpp_lib_ranges >= 201911L)
 #else
-#define HIPONY_ENUMERATE_HAS_RANGES 0
+#define HIPONY_ENUMERATE_HAS_RANGES false
 #endif
 
 #if HIPONY_ENUMERATE_HAS_RANGES
