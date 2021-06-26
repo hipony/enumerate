@@ -319,6 +319,31 @@ struct is_iterator<
 
 #endif
 
+#if HIPONY_ENUMERATE_HAS_CONCEPTS
+
+template<typename T, typename U>
+struct sentinel_for {
+    constexpr static auto value = std::sentinel_for<T, U>;
+};
+
+#else
+
+template<typename T, typename U, typename = void>
+struct sentinel_for : std::false_type {};
+
+template<typename T, typename U>
+struct sentinel_for<
+    T,
+    U,
+    detail::enable_if_t<
+        detail::is_iterator<U>::value,
+        detail::void_t<
+            decltype(T()),
+            decltype(std::declval<T&>() = T()),
+            decltype(std::declval<U&>() == std::declval<T&>())>>> : std::true_type {};
+
+#endif
+
 template<typename T, typename = void>
 struct is_tuple : std::false_type {};
 
@@ -375,13 +400,14 @@ struct tag<
     using type = iterator_pointer_tag_t;
 };
 
-template<typename Size, typename T, typename T1>
+template<typename Size, typename T, typename Sentinel>
 struct tag<
     Size,
     T,
     typename detail::enable_if_t<
-        detail::is_same<T, T1>() && detail::is_iterator<T>::value && !detail::is_pointer<T>::value>,
-    T1> {
+        detail::sentinel_for<Sentinel, T>::value && detail::is_iterator<T>::value
+        && (!detail::is_pointer<T>::value || !detail::is_pointer<Sentinel>::value)>,
+    Sentinel> {
     using type = iterator_tag_t;
 };
 
@@ -575,19 +601,21 @@ public:
     }
 };
 
-template<typename It, typename Size>
+template<typename It, typename Sentinel, typename Size>
 class range_span {
 public:
     using iterator       = It;
+    using sentinel       = Sentinel;
     using const_iterator = It;
+    using const_sentinel = Sentinel;
     using size_type      = Size;
 
 private:
     iterator _begin;
-    iterator _end;
+    sentinel _end;
 
 public:
-    HIPONY_ENUMERATE_CONSTEXPR range_span(iterator begin, iterator end)
+    HIPONY_ENUMERATE_CONSTEXPR range_span(iterator begin, sentinel end)
         : _begin{begin}
         , _end{end}
     {}
@@ -599,7 +627,7 @@ public:
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> const_iterator
+        -> const_sentinel
     {
         return _end;
     }
@@ -761,9 +789,51 @@ struct iterator_value {
     }
 };
 
+template<typename Size, typename InnerIterator>
+struct iterator_base {
+    using inner_iterator = InnerIterator;
+    using size_type      = Size;
+
+    inner_iterator _iterator;
+    size_type      _index;
+
+    HIPONY_ENUMERATE_CONSTEXPR iterator_base() = default;
+
+    HIPONY_ENUMERATE_CONSTEXPR iterator_base(inner_iterator iterator, size_type index)
+        : _iterator{static_cast<decltype(iterator)&&>(iterator)}
+        , _index{index}
+    {}
+};
+
+template<typename T, typename U, typename Size>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+operator==(iterator_base<Size, T> const& lhs, iterator_base<Size, U> const& rhs) noexcept -> bool
+{
+    return lhs._iterator == rhs._iterator;
+}
+
+template<typename T, typename U, typename Size>
+HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto
+operator!=(iterator_base<Size, T> const& lhs, iterator_base<Size, U> const& rhs) noexcept -> bool
+{
+    return !(lhs == rhs);
+}
+
 template<typename Size, typename InnerIterator, typename = void>
-class iterator {
-public:
+struct iterator : iterator_base<Size, InnerIterator> {
+    using iterator_base<Size, InnerIterator>::iterator_base;
+};
+
+template<typename Size, typename InnerIterator>
+struct iterator<
+    Size,
+    InnerIterator,
+    typename detail::enable_if_t<
+        detail::is_iterator<InnerIterator>::value
+        && !std::is_base_of<
+            std::bidirectional_iterator_tag,
+            typename std::iterator_traits<InnerIterator>::iterator_category>::value>>
+    : iterator_base<Size, InnerIterator> {
     using inner_iterator  = InnerIterator;
     using inner_reference = decltype(*inner_iterator{});
 
@@ -774,44 +844,34 @@ public:
     using pointer           = iterator_value<inner_reference, size_type>;
     using reference         = iterator_value<inner_reference, size_type>;
 
-private:
-    inner_iterator _iterator;
-    size_type      _index;
-
-public:
-    HIPONY_ENUMERATE_CONSTEXPR iterator() = default;
-
-    HIPONY_ENUMERATE_CONSTEXPR iterator(inner_iterator iterator, size_type index)
-        : _iterator{static_cast<decltype(iterator)&&>(iterator)}
-        , _index{index}
-    {}
+    using iterator_base<Size, InnerIterator>::iterator_base;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() noexcept -> reference
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() const noexcept
         -> reference
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() noexcept -> pointer
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() const noexcept
         -> pointer
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_CONSTEXPR auto operator++() noexcept -> iterator&
     {
-        _iterator++;
-        _index++;
+        this->_iterator++;
+        this->_index++;
         return *this;
     }
 
@@ -821,28 +881,18 @@ public:
         ++(*this);
         return tmp;
     }
-
-    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
-    operator==(iterator const& lhs, iterator const& rhs) noexcept -> bool
-    {
-        return lhs._iterator == rhs._iterator;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
-    operator!=(iterator const& lhs, iterator const& rhs) noexcept -> bool
-    {
-        return !(lhs == rhs);
-    }
 };
 
 template<typename Size, typename InnerIterator>
-class iterator<
+struct iterator<
     Size,
     InnerIterator,
-    typename detail::enable_if_t<std::is_base_of<
-        std::bidirectional_iterator_tag,
-        typename std::iterator_traits<InnerIterator>::iterator_category>::value>> {
-public:
+    typename detail::enable_if_t<
+        detail::is_iterator<InnerIterator>::value
+        && std::is_base_of<
+            std::bidirectional_iterator_tag,
+            typename std::iterator_traits<InnerIterator>::iterator_category>::value>>
+    : iterator_base<Size, InnerIterator> {
     using inner_iterator  = InnerIterator;
     using inner_reference = decltype(*inner_iterator{});
 
@@ -853,44 +903,34 @@ public:
     using pointer           = iterator_value<inner_reference, size_type>;
     using reference         = iterator_value<inner_reference, size_type>;
 
-private:
-    inner_iterator _iterator;
-    size_type      _index;
-
-public:
-    HIPONY_ENUMERATE_CONSTEXPR iterator() = default;
-
-    HIPONY_ENUMERATE_CONSTEXPR iterator(inner_iterator iterator, size_type index)
-        : _iterator{static_cast<decltype(iterator)&&>(iterator)}
-        , _index{index}
-    {}
+    using iterator_base<Size, InnerIterator>::iterator_base;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() noexcept -> reference
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator*() const noexcept
         -> reference
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() noexcept -> pointer
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto operator->() const noexcept
         -> pointer
     {
-        return {_index, *_iterator};
+        return {this->_index, *this->_iterator};
     }
 
     HIPONY_ENUMERATE_CONSTEXPR auto operator++() noexcept -> iterator&
     {
-        _iterator++;
-        _index++;
+        this->_iterator++;
+        this->_index++;
         return *this;
     }
 
@@ -903,8 +943,8 @@ public:
 
     HIPONY_ENUMERATE_CONSTEXPR auto operator--() noexcept -> iterator&
     {
-        _iterator--;
-        _index++;
+        this->_iterator--;
+        this->_index++;
         return *this;
     }
 
@@ -913,18 +953,6 @@ public:
         auto tmp = *this;
         ++(*this);
         return tmp;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
-    operator==(iterator const& lhs, iterator const& rhs) noexcept -> bool
-    {
-        return lhs._iterator == rhs._iterator;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
-    operator!=(iterator const& lhs, iterator const& rhs) noexcept -> bool
-    {
-        return !(lhs == rhs);
     }
 };
 
@@ -1641,9 +1669,11 @@ struct dispatch<detail::iterator_pointer_tag_t, Size, T, T1> {
         = detail::range<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
 };
 
-template<typename Size, typename T, typename T1>
-struct dispatch<detail::iterator_tag_t, Size, T, T1> {
-    using type = detail::range<Size, detail::range_span<detail::remove_ref_t<T>, Size>>;
+template<typename Size, typename T, typename Sentinel>
+struct dispatch<detail::iterator_tag_t, Size, T, Sentinel> {
+    using type = detail::range<
+        Size,
+        detail::range_span<detail::remove_ref_t<T>, detail::remove_ref_t<Sentinel>, Size>>;
 };
 
 template<typename Size, typename T>

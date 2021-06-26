@@ -45,6 +45,13 @@ constexpr auto index_of<char const*>() -> int
     return 2;
 }
 
+struct user_sentinel {
+    friend auto operator==(std::list<int>::const_iterator const& value, user_sentinel /*_*/) -> bool
+    {
+        return *value == 30;
+    }
+};
+
 } // namespace
 
 #if HIPONY_ENUMERATE_CPP14_OR_GREATER
@@ -227,6 +234,21 @@ TEST_CASE("iterator_tag_t")
         auto const list    = std::list<int>({0, 10, 20, 30, 40});
         auto const range   = enumerate_as<int>(list.begin(), list.end());
         for (auto&& item : range | std::ranges::views::take(3)) {
+            assert_same<int const&, decltype(item.value)>();
+            assert_same<int, decltype(item.index)>();
+
+            REQUIRE(item.index * 10 == item.value);
+            ++counter;
+        }
+        REQUIRE(counter == 3);
+    }
+#endif
+#if defined(__cpp_range_based_for) && (__cpp_range_based_for >= 201603L)
+    SECTION("sentinels")
+    {
+        auto       counter = 0;
+        auto const list    = std::list<int>({0, 10, 20, 30, 40});
+        for (auto&& item : enumerate_as<int>(list.begin(), user_sentinel{})) {
             assert_same<int const&, decltype(item.value)>();
             assert_same<int, decltype(item.index)>();
 

@@ -79,6 +79,34 @@ int main() {
 }
 ```
 
+### Sentinels
+
+> Requires C++17
+
+```cpp
+#include <hipony/enumerate.hpp>
+
+#include <iostream>
+#include <list>
+
+struct sentinel {
+    friend auto operator==(std::list<int>::const_iterator const& it, sentinel) -> bool
+    {
+        return *it == 3;
+    }
+};
+
+int main() {
+
+    auto const list = std::list<int>({0, 1, 2, 3, 4});
+
+    using hipony::enumerate;
+    for (auto&& [index, value] : enumerate(list.begin(), sentinel())) {
+        std::cout << index << ' ' << value << '\n';
+    }
+}
+```
+
 ### Constexpr
 
 > Requires C++14
