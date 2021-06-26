@@ -53,9 +53,11 @@ int main() {
 
 ### Ranges
 
-> Clang doesn't yet have full support for Concepts and Ranges
+> Note, Clang doesn't yet have full support for Concepts and Ranges
 
-The `enumerate` wrapper is not yet a _view_, which requires a different dispatch based on the reference type.
+When you pass an lvalue expression to `enumerate`, then the result type will satisfy the `std::ranges::view` concept, allowing to use the function directly with range adapters.
+
+When you pass an rvalue expression to `enumerate`, then the result type will satisfy the `std::ranges::range`, which requires an out of line declaration.
 
 ```cpp
 // C++20
@@ -65,8 +67,12 @@ The `enumerate` wrapper is not yet a _view_, which requires a different dispatch
 #include <ranges>
 
 int main() {
-    std::array array{0, 1, 2, 3, 4, 5};
-    auto range = hipony::enumerate(array);
+    auto array = std::array{0, 1, 2, 3, 4, 5};
+    for(auto&& [index, value] : hipony::enumerate(array) | std::ranges::views::take(3)) {
+        std::cout << index << ' ' << value << '\n';
+    }
+
+    auto range = hipony::enumerate(std::array{0, 1, 2, 3, 4, 5});
     for(auto&& [index, value] : range | std::ranges::views::take(3)) {
         std::cout << index << ' ' << value << '\n';
     }
