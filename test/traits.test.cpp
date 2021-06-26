@@ -278,7 +278,7 @@ static_assert(
         decltype(enumerate_as<int>(std::vector<int>().begin(), std::vector<int>().end()))>::value,
     "");
 
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
 
 // variadic_array_tag_t
 static_assert(!std::ranges::view<decltype(enumerate(as_array, 0, 1, 2, 3, 4))>);
