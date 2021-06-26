@@ -740,37 +740,6 @@ struct array {
     }
 };
 
-template<typename Container>
-struct propagation_wrapper {
-    using value_type = typename detail::remove_cvref_t<Container>;
-
-    value_type data;
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> decltype(data.begin())
-    {
-        return data.begin();
-    }
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> decltype(data.end())
-    {
-        return data.end();
-    }
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> decltype(data.begin())
-    {
-        return data.begin();
-    }
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> decltype(data.end())
-    {
-        return data.end();
-    }
-};
-
 template<typename T, typename IndexType>
 struct iterator_value {
     using index_type = IndexType;
@@ -798,7 +767,7 @@ public:
     using inner_iterator  = InnerIterator;
     using inner_reference = decltype(*inner_iterator{});
 
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = typename std::iterator_traits<inner_iterator>::iterator_category;
     using difference_type   = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type         = Size;
     using value_type        = iterator_value<inner_reference, size_type>;
@@ -867,7 +836,7 @@ public:
 };
 
 template<typename Size, typename Container>
-struct wrapper {
+struct range {
     using value_type = typename detail::remove_rref_t<Container>;
     using size_type  = Size;
 
@@ -898,13 +867,101 @@ struct wrapper {
     }
 };
 
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
+
+template<typename Size, typename Container>
+struct range_view : std::ranges::view_interface<range_view<Size, Container>> {
+    using value_type = typename detail::remove_ref_t<Container>;
+    using size_type  = Size;
+
+    value_type* data;
+
+    HIPONY_ENUMERATE_CONSTEXPR range_view() = default;
+
+    HIPONY_ENUMERATE_CONSTEXPR range_view(value_type& data_)
+        : data{&data_}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<size_type, decltype(data->begin())>
+    {
+        return {data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<size_type, decltype(data->end())>
+    {
+        return {data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<size_type, decltype(data->begin())>
+    {
+        return {data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<size_type, decltype(data->end())>
+    {
+        return {data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+using view = detail::range_view<Size, Container>;
+
+#else
+
+template<typename Size, typename Container>
+struct basic_view {
+    using value_type = typename detail::remove_ref_t<Container>;
+    using size_type  = Size;
+
+    value_type* data;
+
+    HIPONY_ENUMERATE_CONSTEXPR basic_view() = default;
+
+    HIPONY_ENUMERATE_CONSTEXPR basic_view(value_type& data_)
+        : data{&data_}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<size_type, decltype(data->begin())>
+    {
+        return {data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<size_type, decltype(data->end())>
+    {
+        return {data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<size_type, decltype(data->begin())>
+    {
+        return {data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<size_type, decltype(data->end())>
+    {
+        return {data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+using view = detail::basic_view<Size, Container>;
+
+#endif
+
 template<typename Size, typename InnerIterator>
 class limited_iterator {
 public:
     using inner_iterator  = InnerIterator;
     using inner_reference = decltype(*inner_iterator{});
 
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = typename std::iterator_traits<inner_iterator>::iterator_category;
     using difference_type   = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type         = Size;
     using value_type        = iterator_value<inner_reference, size_type>;
@@ -982,44 +1039,52 @@ public:
 };
 
 template<typename Size, typename Container, typename = void>
-struct limited_wrapper {
+struct limited_range {
     using value_type = typename detail::remove_rref_t<Container>;
     using size_type  = Size;
 
-    value_type data;
-    size_type  size;
+    struct impl_t {
+        value_type data;
+        size_type  size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type&& data_, size_type size_)
+            : data{static_cast<decltype(data_)&&>(data_)}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> limited_iterator<size_type, decltype(data.begin())>
+        -> limited_iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data.begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> limited_iterator<size_type, decltype(data.end())>
+        -> limited_iterator<size_type, decltype(impl.data.end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data.end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data.end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> limited_iterator<size_type, decltype(data.begin())>
+        -> limited_iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data.begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> limited_iterator<size_type, decltype(data.end())>
+        -> limited_iterator<size_type, decltype(impl.data.end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data.end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data.end()};
     }
 };
 
 template<typename Size, typename Container>
-struct limited_wrapper<
+struct limited_range<
     Size,
     Container,
     typename detail::enable_if_t<std::is_base_of<
@@ -1031,41 +1096,278 @@ struct limited_wrapper<
     using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type       = Size;
 
-    value_type data;
-    size_type  size;
+    struct impl_t {
+        value_type data;
+        size_type  size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type&& data_, size_type size_)
+            : data{static_cast<decltype(data_)&&>(data_)}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        return {data.begin()};
+        return {impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
+        assert(impl.size >= 0 && "Size is negative");
         return {
-            ((data.end() - data.begin()) > static_cast<difference_type>(size))
-                ? (data.begin() + size)
-                : data.end()};
+            ((impl.data.end() - impl.data.begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data.begin() + impl.size)
+                : impl.data.end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        return {data.begin()};
+        return {impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
+        assert(impl.size >= 0 && "Size is negative");
         return {
-            ((data.end() - data.begin()) > static_cast<difference_type>(size))
-                ? (data.begin() + size)
-                : data.end()};
+            ((impl.data.end() - impl.data.begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data.begin() + impl.size)
+                : impl.data.end()};
     }
 };
+
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
+
+template<typename Size, typename Container, typename = void>
+struct limited_range_view : std::ranges::view_interface<limited_range_view<Size, Container>> {
+    using value_type = typename detail::remove_ref_t<Container>;
+    using size_type  = Size;
+
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
+
+    HIPONY_ENUMERATE_CONSTEXPR limited_range_view() = default;
+
+    HIPONY_ENUMERATE_CONSTEXPR limited_range_view(impl_t impl_)
+        : impl{static_cast<impl_t&&>(impl_)}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> limited_iterator<size_type, decltype(impl.data->end())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> limited_iterator<size_type, decltype(impl.data->end())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+struct limited_range_view<
+    Size,
+    Container,
+    typename detail::enable_if_t<std::is_base_of<
+        std::random_access_iterator_tag,
+        typename std::iterator_traits<
+            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>>
+    : std::ranges::view_interface<limited_range_view<Size, Container>> {
+    using value_type      = typename detail::remove_rref_t<Container>;
+    using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
+    using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
+    using size_type       = Size;
+
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
+
+    HIPONY_ENUMERATE_CONSTEXPR limited_range_view() = default;
+
+    HIPONY_ENUMERATE_CONSTEXPR limited_range_view(impl_t impl_)
+        : impl{static_cast<impl_t&&>(impl_)}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        return {impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        return {impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+using limited_view = detail::limited_range_view<Size, Container>;
+
+#else
+
+template<typename Size, typename Container, typename = void>
+struct limited_basic_view {
+    using value_type = typename detail::remove_ref_t<Container>;
+    using size_type  = Size;
+
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> limited_iterator<size_type, decltype(impl.data->end())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> limited_iterator<size_type, decltype(impl.data->end())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+struct limited_basic_view<
+    Size,
+    Container,
+    typename detail::enable_if_t<std::is_base_of<
+        std::random_access_iterator_tag,
+        typename std::iterator_traits<
+            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>> {
+    using value_type      = typename detail::remove_rref_t<Container>;
+    using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
+    using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
+    using size_type       = Size;
+
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        return {impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        return {impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+using limited_view = detail::limited_basic_view<Size, Container>;
+
+#endif
 
 template<typename Size, typename T, typename U = T>
 struct tuple_wrapper;
@@ -1129,29 +1431,38 @@ struct dispatch<detail::variadic_tuple_tag_t, Size, Ts...> {
 
 template<typename Size, typename T, typename... Ts>
 struct dispatch<detail::variadic_array_tag_t, Size, T, Ts...> {
-    using type = detail::wrapper<Size, detail::array<detail::remove_rref_t<T>, sizeof...(Ts) + 1>>;
+    using type = detail::range<Size, detail::array<detail::remove_rref_t<T>, sizeof...(Ts) + 1>>;
 };
 
 template<typename Size, typename T, typename T1>
 struct dispatch<detail::iterator_pointer_tag_t, Size, T, T1> {
-    using type = detail::
-        wrapper<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
+    using type
+        = detail::range<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
 };
 
 template<typename Size, typename T, typename T1>
 struct dispatch<detail::iterator_tag_t, Size, T, T1> {
-    using type = detail::wrapper<Size, detail::range_span<detail::remove_ref_t<T>, Size>>;
+    using type = detail::range<Size, detail::range_span<detail::remove_ref_t<T>, Size>>;
 };
 
 template<typename Size, typename T>
 struct dispatch<detail::container_tag_t, Size, T> {
-    using type = detail::wrapper<Size, detail::remove_rref_t<T>>;
+    using type = detail::range<Size, detail::remove_rref_t<T>>;
+};
+
+template<typename Size, typename T>
+struct dispatch<detail::container_tag_t, Size, T&> {
+    using type = detail::view<Size, T>;
 };
 
 template<typename Size, typename T, typename TSize>
 struct dispatch<detail::container_size_tag_t, Size, T, TSize> {
-    using type
-        = detail::propagation_wrapper<detail::limited_wrapper<Size, detail::remove_rref_t<T>>>;
+    using type = detail::limited_range<Size, detail::remove_rref_t<T>>;
+};
+
+template<typename Size, typename T, typename TSize>
+struct dispatch<detail::container_size_tag_t, Size, T&, TSize> {
+    using type = detail::limited_view<Size, T>;
 };
 
 template<typename Size, typename T>
@@ -1161,23 +1472,23 @@ struct dispatch<detail::tuple_tag_t, Size, T> {
 
 template<typename Size, typename T, typename TSize>
 struct dispatch<detail::pointer_tag_t, Size, T, TSize> {
-    using type = detail::
-        wrapper<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
+    using type
+        = detail::range<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
 };
 
 template<typename Size, typename T>
 struct dispatch<detail::string_tag_t, Size, T> {
-    using type = detail::wrapper<Size, detail::zstring_view<detail::decay_t<T>>>;
+    using type = detail::range<Size, detail::zstring_view<detail::decay_t<T>>>;
 };
 
 template<typename Size, typename T, Size N>
 struct dispatch<detail::array_tag_t, Size, T (&)[N]> {
-    using type = detail::wrapper<Size, detail::span<detail::remove_ref_t<T>, Size, N>>;
+    using type = detail::range<Size, detail::span<detail::remove_ref_t<T>, Size, N>>;
 };
 
 template<typename Size, typename T, Size N, typename TSize>
 struct dispatch<detail::array_tag_t, Size, T (&)[N], TSize> {
-    using type = detail::wrapper<Size, detail::span<detail::remove_ref_t<T>, Size>>;
+    using type = detail::range<Size, detail::span<detail::remove_ref_t<T>, Size>>;
 };
 
 #if HIPONY_ENUMERATE_HAS_AGGREGATES

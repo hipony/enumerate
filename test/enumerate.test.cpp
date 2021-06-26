@@ -299,9 +299,19 @@ TEST_CASE("container_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
-            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
-            auto const range   = enumerate_as<int>(array);
+            auto const range   = enumerate_as<int>(std::array<int, 5>({0, 10, 20, 30, 40}));
             for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(array) | std::ranges::views::take(3)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(array)::value_type const&, decltype(item.value)>();
 
@@ -372,9 +382,19 @@ TEST_CASE("container_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
-            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
-            auto const range   = enumerate_as<int>(vector);
+            auto const range   = enumerate_as<int>(std::vector<int>({0, 10, 20, 30, 40}));
             for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(vector) | std::ranges::views::take(3)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
 
@@ -445,9 +465,19 @@ TEST_CASE("container_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
-            auto const string  = std::string("01234");
-            auto const range   = enumerate_as<int>(string);
+            auto const range   = enumerate_as<int>(std::string("01234"));
             for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+        SECTION("ranges-views")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            for (auto&& item : enumerate_as<int>(string) | std::ranges::views::take(3)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(string)::value_type const&, decltype(item.value)>();
 
@@ -515,9 +545,19 @@ TEST_CASE("container_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
-            auto const list    = std::list<int>({0, 10, 20, 30, 40});
-            auto const range   = enumerate_as<int>(list);
+            auto const range   = enumerate_as<int>(std::list<int>({0, 10, 20, 30, 40}));
             for (auto&& item : range | std::ranges::views::take(3)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == 3);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(list) | std::ranges::views::take(3)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(list)::value_type const&, decltype(item.value)>();
 
@@ -598,10 +638,22 @@ TEST_CASE("container_size_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(std::array<int, 5>({0, 10, 20, 30, 40}), 5);
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
             auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
             auto const size    = 3;
-            auto const range   = enumerate_as<int>(array, static_cast<int>(array.size()));
-            for (auto&& item : range | std::ranges::views::take(size)) {
+            for (auto&& item : enumerate_as<int>(array, static_cast<int>(array.size()))
+                     | std::ranges::views::take(size)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(array)::value_type const&, decltype(item.value)>();
 
@@ -744,10 +796,22 @@ TEST_CASE("container_size_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(std::vector<int>({0, 10, 20, 30, 40}), 5);
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
             auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
             auto const size    = 3;
-            auto const range   = enumerate_as<int>(vector, static_cast<int>(vector.size()));
-            for (auto&& item : range | std::ranges::views::take(size)) {
+            for (auto&& item : enumerate_as<int>(vector, static_cast<int>(vector.size()))
+                     | std::ranges::views::take(size)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
 
@@ -890,10 +954,22 @@ TEST_CASE("container_size_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(std::string("01234"), 5);
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
             auto const string  = std::string("01234");
             auto const size    = 3;
-            auto const range   = enumerate_as<int>(string, static_cast<int>(string.size()));
-            for (auto&& item : range | std::ranges::views::take(size)) {
+            for (auto&& item : enumerate_as<int>(string, static_cast<int>(string.size()))
+                     | std::ranges::views::take(size)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(string)::value_type const&, decltype(item.value)>();
 
@@ -1033,10 +1109,22 @@ TEST_CASE("container_size_tag_t")
         SECTION("ranges")
         {
             auto       counter = 0;
+            auto const size    = 3;
+            auto const range   = enumerate_as<int>(std::list<int>({0, 10, 20, 30, 40}), 5);
+            for (auto&& item : range | std::ranges::views::take(size)) {
+                assert_same<int, decltype(item.index)>();
+                REQUIRE(item.index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
+        }
+        SECTION("ranges-view")
+        {
+            auto       counter = 0;
             auto const list    = std::list<int>({0, 10, 20, 30, 40});
             auto const size    = 3;
-            auto const range   = enumerate_as<int>(list, static_cast<int>(list.size()));
-            for (auto&& item : range | std::ranges::views::take(size)) {
+            for (auto&& item : enumerate_as<int>(list, static_cast<int>(list.size()))
+                     | std::ranges::views::take(size)) {
                 assert_same<int, decltype(item.index)>();
                 assert_same<decltype(list)::value_type const&, decltype(item.value)>();
 

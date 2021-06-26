@@ -278,5 +278,76 @@ static_assert(
         decltype(enumerate_as<int>(std::vector<int>().begin(), std::vector<int>().end()))>::value,
     "");
 
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
+
+// variadic_array_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(as_array, 0, 1, 2, 3, 4))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(as_array, 0, 1, 2, 3, 4))>);
+
+// variadic_tuple_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(as_tuple, 0, 1, 2, 3, 4))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(as_tuple, 0, 1, 2, 3, 4))>);
+static_assert(!std::ranges::view<decltype(enumerate(as_tuple, 0, 1., "string"))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(as_tuple, 0, 1., "string"))>);
+
+// tuple_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(std::tuple<int, int>()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::tuple<int, int>()))>);
+static_assert(!std::ranges::view<decltype(enumerate(std::pair<int, int>()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::pair<int, int>()))>);
+
+// container_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(std::vector<int>()))>);
+static_assert(std::ranges::view<decltype(enumerate(std::declval<std::vector<int>&>()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::vector<int>()))>);
+static_assert(std::ranges::view<decltype(enumerate_as<int>(std::declval<std::vector<int>&>()))>);
+static_assert(!std::ranges::view<decltype(enumerate(std::array<int, 3>()))>);
+static_assert(std::ranges::view<decltype(enumerate(std::declval<std::array<int, 3>&>()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::array<int, 3>()))>);
+static_assert(std::ranges::view<decltype(enumerate_as<int>(std::declval<std::array<int, 3>&>()))>);
+
+// container_size_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(std::vector<int>(), std::size_t()))>);
+static_assert(
+    std::ranges::view<decltype(enumerate(std::declval<std::vector<int>&>(), std::size_t()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::vector<int>(), int()))>);
+static_assert(
+    std::ranges::view<decltype(enumerate_as<int>(std::declval<std::vector<int>&>(), int()))>);
+static_assert(!std::ranges::view<decltype(enumerate(std::array<int, 3>(), std::size_t()))>);
+static_assert(
+    std::ranges::view<decltype(enumerate(std::declval<std::array<int, 3>&>(), std::size_t()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::array<int, 3>(), int()))>);
+static_assert(
+    std::ranges::view<decltype(enumerate_as<int>(std::declval<std::array<int, 3>&>(), int()))>);
+
+// pointer_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(std::declval<int*>(), std::size_t()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::declval<int*>(), int()))>);
+
+// array_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(std::declval<int (&)[5]>()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::declval<int (&)[5]>()))>);
+static_assert(!std::ranges::view<decltype(enumerate(std::declval<int (&)[5]>(), std::size_t()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>(std::declval<int (&)[5]>(), int()))>);
+
+// string_tag_t
+static_assert(!std::ranges::view<decltype(enumerate("123456"))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>("123456"))>);
+static_assert(!std::ranges::view<decltype(enumerate("123456", std::size_t()))>);
+static_assert(!std::ranges::view<decltype(enumerate_as<int>("123456", int()))>);
+
+// iterator_pointer_tag_t
+static_assert(!std::ranges::view<decltype(enumerate(std::declval<int*>(), std::declval<int*>()))>);
+static_assert(
+    !std::ranges::view<decltype(enumerate_as<int>(std::declval<int*>(), std::declval<int*>()))>);
+
+// iterator_tag_t
+static_assert(
+    !std::ranges::view<decltype(enumerate(std::vector<int>().begin(), std::vector<int>().end()))>);
+static_assert(!std::ranges::view<
+              decltype(enumerate_as<int>(std::vector<int>().begin(), std::vector<int>().end()))>);
+
+#endif
+
 } // namespace hipony_enumerate
 } // namespace HIPONY_ENUMERATE_NAMESPACE
