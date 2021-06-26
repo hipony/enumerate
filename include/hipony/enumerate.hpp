@@ -878,7 +878,7 @@ struct range_view : std::ranges::view_interface<range_view<Size, Container>> {
 
     HIPONY_ENUMERATE_CONSTEXPR range_view() = default;
 
-    HIPONY_ENUMERATE_CONSTEXPR range_view(Container& data_)
+    HIPONY_ENUMERATE_CONSTEXPR range_view(value_type& data_)
         : data{&data_}
     {}
 
@@ -918,7 +918,7 @@ struct basic_view {
 
     HIPONY_ENUMERATE_CONSTEXPR basic_view() = default;
 
-    HIPONY_ENUMERATE_CONSTEXPR basic_view(Container& data_)
+    HIPONY_ENUMERATE_CONSTEXPR basic_view(value_type& data_)
         : data{&data_}
     {}
 
@@ -1044,46 +1044,43 @@ struct limited_range {
     using value_type = typename detail::remove_rref_t<Container>;
     using size_type  = Size;
 
-    value_type data;
-    size_type  size;
+    struct impl_t {
+        value_type data;
+        size_type  size;
 
-    struct args_t {
-        Container data;
-        Size      size;
-    };
-
-    HIPONY_ENUMERATE_CONSTEXPR
-    limited_range(args_t args)
-        : data{args.data}
-        , size{args.size}
-    {}
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type&& data_, size_type size_)
+            : data{static_cast<decltype(data_)&&>(data_)}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> limited_iterator<size_type, decltype(data.begin())>
+        -> limited_iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data.begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> limited_iterator<size_type, decltype(data.end())>
+        -> limited_iterator<size_type, decltype(impl.data.end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data.end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data.end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> limited_iterator<size_type, decltype(data.begin())>
+        -> limited_iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data.begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> limited_iterator<size_type, decltype(data.end())>
+        -> limited_iterator<size_type, decltype(impl.data.end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data.end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data.end()};
     }
 };
 
@@ -1100,50 +1097,47 @@ struct limited_range<
     using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type       = Size;
 
-    value_type data;
-    size_type  size;
+    struct impl_t {
+        value_type data;
+        size_type  size;
 
-    struct args_t {
-        Container data;
-        Size      size;
-    };
-
-    HIPONY_ENUMERATE_CONSTEXPR
-    limited_range(args_t args)
-        : data{args.data}
-        , size{args.size}
-    {}
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type&& data_, size_type size_)
+            : data{static_cast<decltype(data_)&&>(data_)}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        return {data.begin()};
+        return {impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
+        assert(impl.size >= 0 && "Size is negative");
         return {
-            ((data.end() - data.begin()) > static_cast<difference_type>(size))
-                ? (data.begin() + size)
-                : data.end()};
+            ((impl.data.end() - impl.data.begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data.begin() + impl.size)
+                : impl.data.end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        return {data.begin()};
+        return {impl.data.begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> iterator<size_type, decltype(data.begin())>
+        -> iterator<size_type, decltype(impl.data.begin())>
     {
-        assert(size >= 0 && "Size is negative");
+        assert(impl.size >= 0 && "Size is negative");
         return {
-            ((data.end() - data.begin()) > static_cast<difference_type>(size))
-                ? (data.begin() + size)
-                : data.end()};
+            ((impl.data.end() - impl.data.begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data.begin() + impl.size)
+                : impl.data.end()};
     }
 };
 
@@ -1154,47 +1148,49 @@ struct limited_range_view : std::ranges::view_interface<limited_range_view<Size,
     using value_type = typename detail::remove_ref_t<Container>;
     using size_type  = Size;
 
-    value_type* data;
-    size_type   size;
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_CONSTEXPR limited_range_view() = default;
 
-    struct args_t {
-        Container& data;
-        Size       size;
-    };
-
-    HIPONY_ENUMERATE_CONSTEXPR limited_range_view(args_t args)
-        : data{&args.data}
-        , size{args.size}
+    HIPONY_ENUMERATE_CONSTEXPR limited_range_view(impl_t impl_)
+        : impl{static_cast<impl_t&&>(impl_)}
     {}
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> limited_iterator<size_type, decltype(data->begin())>
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data->begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> limited_iterator<size_type, decltype(data->end())>
+        -> limited_iterator<size_type, decltype(impl.data->end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data->end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> limited_iterator<size_type, decltype(data->begin())>
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data->begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> limited_iterator<size_type, decltype(data->end())>
+        -> limited_iterator<size_type, decltype(impl.data->end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data->end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
     }
 };
 
@@ -1212,51 +1208,53 @@ struct limited_range_view<
     using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type       = Size;
 
-    value_type* data;
-    size_type   size;
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_CONSTEXPR limited_range_view() = default;
 
-    struct args_t {
-        Container& data;
-        Size       size;
-    };
-
-    HIPONY_ENUMERATE_CONSTEXPR limited_range_view(args_t args)
-        : data{&args.data}
-        , size{args.size}
+    HIPONY_ENUMERATE_CONSTEXPR limited_range_view(impl_t impl_)
+        : impl{static_cast<impl_t&&>(impl_)}
     {}
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> iterator<size_type, decltype(data->begin())>
+        -> iterator<size_type, decltype(impl.data->begin())>
     {
-        return {data->begin()};
+        return {impl.data->begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> iterator<size_type, decltype(data->begin())>
+        -> iterator<size_type, decltype(impl.data->begin())>
     {
-        assert(size >= 0 && "Size is negative");
+        assert(impl.size >= 0 && "Size is negative");
         return {
-            ((data->end() - data->begin()) > static_cast<difference_type>(size))
-                ? (data->begin() + size)
-                : data->end()};
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> iterator<size_type, decltype(data->begin())>
+        -> iterator<size_type, decltype(impl.data->begin())>
     {
-        return {data->begin()};
+        return {impl.data->begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> iterator<size_type, decltype(data->begin())>
+        -> iterator<size_type, decltype(impl.data->begin())>
     {
-        assert(size >= 0 && "Size is negative");
+        assert(impl.size >= 0 && "Size is negative");
         return {
-            ((data->end() - data->begin()) > static_cast<difference_type>(size))
-                ? (data->begin() + size)
-                : data->end()};
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
     }
 };
 
@@ -1264,38 +1262,103 @@ struct limited_range_view<
 
 template<typename Size, typename Container, typename = void>
 struct limited_basic_view {
-    using value_type = typename detail::remove_rref_t<Container>;
+    using value_type = typename detail::remove_ref_t<Container>;
     using size_type  = Size;
 
-    value_type data;
-    size_type  size;
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
-        -> limited_iterator<size_type, decltype(data.begin())>
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data.begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
-        -> limited_iterator<size_type, decltype(data.end())>
+        -> limited_iterator<size_type, decltype(impl.data->end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data.end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> limited_iterator<size_type, decltype(data.begin())>
+        -> limited_iterator<size_type, decltype(impl.data->begin())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, data.begin()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.data->begin()};
     }
 
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> limited_iterator<size_type, decltype(data.end())>
+        -> limited_iterator<size_type, decltype(impl.data->end())>
     {
-        assert(size >= 0 && "Size is negative");
-        return {size, size, data.end()};
+        assert(impl.size >= 0 && "Size is negative");
+        return {impl.size, impl.size, impl.data->end()};
+    }
+};
+
+template<typename Size, typename Container>
+struct limited_basic_view<
+    Size,
+    Container,
+    typename detail::enable_if_t<std::is_base_of<
+        std::random_access_iterator_tag,
+        typename std::iterator_traits<
+            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>> {
+    using value_type      = typename detail::remove_rref_t<Container>;
+    using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
+    using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
+    using size_type       = Size;
+
+    struct impl_t {
+        value_type* data;
+        size_type   size;
+
+        HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
+        HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
+            : data{&data_}
+            , size{size_}
+        {}
+    } impl;
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        return {impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        return {impl.data->begin()};
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> iterator<size_type, decltype(impl.data->begin())>
+    {
+        assert(impl.size >= 0 && "Size is negative");
+        return {
+            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
+                ? (impl.data->begin() + impl.size)
+                : impl.data->end()};
     }
 };
 
