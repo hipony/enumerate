@@ -321,6 +321,21 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 3);
         }
+        SECTION("ranges-reverse")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(array) | std::ranges::views::reverse) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                auto const index = array.size() - (item.index + 1);
+                REQUIRE(&array[index] == &item.value);
+                REQUIRE(index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == array.size());
+        }
 #endif
     }
     SECTION("vector")
@@ -403,6 +418,21 @@ TEST_CASE("container_tag_t")
                 ++counter;
             }
             REQUIRE(counter == 3);
+        }
+        SECTION("ranges-reverse")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(vector) | std::ranges::views::reverse) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                auto const index = vector.size() - (item.index + 1);
+                REQUIRE(&vector[index] == &item.value);
+                REQUIRE(index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == vector.size());
         }
 #endif
     }
@@ -487,6 +517,21 @@ TEST_CASE("container_tag_t")
             }
             REQUIRE(counter == 3);
         }
+        SECTION("ranges-reverse")
+        {
+            auto       counter = 0;
+            auto const string  = std::string("01234");
+            for (auto&& item : enumerate_as<int>(string) | std::ranges::views::reverse) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(string)::value_type const&, decltype(item.value)>();
+
+                auto const index = string.size() - (item.index + 1);
+                REQUIRE(&string[index] == &item.value);
+                REQUIRE(index + '0' == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == string.size());
+        }
 #endif
     }
     SECTION("list")
@@ -565,6 +610,20 @@ TEST_CASE("container_tag_t")
                 ++counter;
             }
             REQUIRE(counter == 3);
+        }
+        SECTION("ranges-reverse")
+        {
+            auto       counter = 0;
+            auto const list    = std::list<int>({0, 10, 20, 30, 40});
+            for (auto&& item : enumerate_as<int>(list) | std::ranges::views::reverse) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(list)::value_type const&, decltype(item.value)>();
+
+                auto const index = list.size() - (item.index + 1);
+                REQUIRE(index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == list.size());
         }
 #endif
     }
@@ -663,6 +722,22 @@ TEST_CASE("container_size_tag_t")
             }
             REQUIRE(counter == size);
             REQUIRE(counter != array.size());
+        }
+        SECTION("ranges-reverse")
+        {
+            auto       counter = 0;
+            auto const array   = std::array<int, 5>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            for (auto&& item : enumerate_as<int>(array, 3) | std::ranges::views::reverse) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(array)::value_type const&, decltype(item.value)>();
+
+                auto const index = size - (item.index + 1);
+                REQUIRE(&array[index] == &item.value);
+                REQUIRE(index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
         }
 #endif
         SECTION("more")
@@ -821,6 +896,22 @@ TEST_CASE("container_size_tag_t")
             }
             REQUIRE(counter == size);
             REQUIRE(counter != vector.size());
+        }
+        SECTION("ranges-reverse")
+        {
+            auto       counter = 0;
+            auto const vector  = std::vector<int>({0, 10, 20, 30, 40});
+            auto const size    = 3;
+            for (auto&& item : enumerate_as<int>(vector, 3) | std::ranges::views::reverse) {
+                assert_same<int, decltype(item.index)>();
+                assert_same<decltype(vector)::value_type const&, decltype(item.value)>();
+
+                auto const index = size - (item.index + 1);
+                REQUIRE(&vector[index] == &item.value);
+                REQUIRE(index * 10 == item.value);
+                ++counter;
+            }
+            REQUIRE(counter == size);
         }
 #endif
         SECTION("more")
