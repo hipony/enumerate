@@ -66,15 +66,17 @@ static_assert(std::is_same<detail::size_t<void, std::tuple<int, float>>, std::si
 static_assert(std::is_same<detail::size_t<int, std::tuple<int, float>>, int>::value, "");
 
 namespace {
+
 struct user_container {
     int* _begin;
     int* _end;
+    using iterator  = int*;
     using size_type = int;
-    HIPONY_ENUMERATE_NODISCARD auto begin() const -> int*
+    HIPONY_ENUMERATE_NODISCARD auto begin() const -> iterator
     {
         return _begin;
     }
-    HIPONY_ENUMERATE_NODISCARD auto end() const -> int*
+    HIPONY_ENUMERATE_NODISCARD auto end() const -> iterator
     {
         return _end;
     }
@@ -83,10 +85,29 @@ struct user_container {
         return static_cast<size_type>(_end - _begin);
     }
 };
+
 } // namespace
 
 static_assert(std::is_same<detail::size_t<void, user_container>, int>::value, "");
 static_assert(std::is_same<detail::size_t<std::size_t, user_container>, std::size_t>::value, "");
+
+// Sentinel support
+
+namespace {
+
+struct user_sentinel {
+    HIPONY_ENUMERATE_NODISCARD friend inline auto operator==(
+        int const* value,
+        user_sentinel
+        /*_*/) -> bool
+    {
+        return true;
+    }
+};
+
+} // namespace
+
+static_assert(detail::sentinel_for<user_sentinel, user_container::iterator>::value, "");
 
 // Tag inference
 
@@ -209,6 +230,8 @@ struct complex_aggregate_t : base_t {};
 //     "");
 
 #endif
+
+// Sentinel
 
 // Returned type
 
