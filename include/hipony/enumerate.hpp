@@ -867,7 +867,7 @@ struct range {
     }
 };
 
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
 
 template<typename Size, typename Container>
 struct range_view : std::ranges::view_interface<range_view<Size, Container>> {
@@ -906,6 +906,9 @@ struct range_view : std::ranges::view_interface<range_view<Size, Container>> {
         return {data->end()};
     }
 };
+
+template<typename Size, typename Container>
+using view = detail::range_view<Size, Container>;
 
 #else
 
@@ -947,13 +950,9 @@ struct basic_view {
     }
 };
 
-#endif
-
 template<typename Size, typename Container>
-#if HIPONY_ENUMERATE_HAS_RANGES
-using view = detail::range_view<Size, Container>;
-#else
 using view = detail::basic_view<Size, Container>;
+
 #endif
 
 template<typename Size, typename InnerIterator>
@@ -1141,7 +1140,7 @@ struct limited_range<
     }
 };
 
-#if HIPONY_ENUMERATE_HAS_RANGES
+#if HIPONY_ENUMERATE_HAS_RANGES && !defined(__clang__)
 
 template<typename Size, typename Container, typename = void>
 struct limited_range_view : std::ranges::view_interface<limited_range_view<Size, Container>> {
@@ -1258,6 +1257,9 @@ struct limited_range_view<
     }
 };
 
+template<typename Size, typename Container>
+using limited_view = detail::limited_range_view<Size, Container>;
+
 #else
 
 template<typename Size, typename Container, typename = void>
@@ -1362,13 +1364,9 @@ struct limited_basic_view<
     }
 };
 
-#endif
-
 template<typename Size, typename Container>
-#if HIPONY_ENUMERATE_HAS_RANGES
-using limited_view = detail::limited_range_view<Size, Container>;
-#else
 using limited_view = detail::limited_basic_view<Size, Container>;
+
 #endif
 
 template<typename Size, typename T, typename U = T>
