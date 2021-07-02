@@ -329,13 +329,51 @@ struct dynamic_extent {
 template<typename It, typename Sentinel, typename Size, Size N = detail::dynamic_extent<Size>::value>
 class span {
 public:
-    using iterator = It;
-    using sentinel = Sentinel;
+    static_assert(detail::sentinel_for<Sentinel, It>::value, "Sentinel doesn't match Iterator");
 
-    static_assert(
-        detail::sentinel_for<sentinel, iterator>::value,
-        "Sentinel doesn't match Iterator");
+    using iterator       = It;
+    using sentinel       = Sentinel;
+    using const_iterator = It;
+    using const_sentinel = Sentinel;
+    using size_type      = Size;
 
+private:
+    iterator _begin;
+    sentinel _end;
+
+public:
+    HIPONY_ENUMERATE_CONSTEXPR span(iterator begin, sentinel end)
+        : _begin{begin}
+        , _end{end}
+    {}
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> const_iterator
+    {
+        return _begin;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> const_sentinel
+    {
+        return _end;
+    }
+};
+
+template<typename It, typename Sentinel, typename Size, Size N>
+class span<
+    It,
+    Sentinel,
+    detail::enable_if_t<
+        std::is_base_of<
+            std::random_access_iterator_tag,
+            typename std::iterator_traits<It>::iterator_category>::value
+            && std::is_same<It, Sentinel>::value,
+        Size>,
+    N> {
+public:
+    using iterator       = It;
+    using sentinel       = Sentinel;
     using const_iterator = It;
     using const_sentinel = Sentinel;
     using size_type      = Size;
@@ -351,16 +389,9 @@ public:
         : _begin{begin}
         , _end{end}
     {
-#if HIPONY_ENUMERATE_HAS_IF_CONSTEXPR
-        if constexpr (std::is_same<iterator_category, std::random_access_iterator_tag>::value) {
-            assert((_end - _begin) >= 0 && "Size is negative");
-        }
-#endif
+        assert((_end - _begin) >= 0 && "Size is negative");
     }
 
-    template<
-        typename = detail::enable_if_t<
-            std::is_same<iterator_category, std::random_access_iterator_tag>::value>>
     HIPONY_ENUMERATE_CONSTEXPR span(iterator ptr, size_type size)
         : _begin{ptr}
         , _end{ptr + size}
@@ -368,9 +399,6 @@ public:
         assert(size >= 0 && "Size is negative");
     }
 
-    template<
-        typename = detail::enable_if_t<
-            std::is_same<iterator_category, std::random_access_iterator_tag>::value>>
     HIPONY_ENUMERATE_CONSTEXPR span(iterator ptr)
         : _begin{ptr}
         , _end{ptr + N}
@@ -390,9 +418,6 @@ public:
         return _end;
     }
 
-    template<
-        typename = detail::enable_if_t<
-            std::is_same<iterator_category, std::random_access_iterator_tag>::value>>
     HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
     {
         return _end - _begin;
