@@ -52,6 +52,12 @@
 #define HIPONY_ENUMERATE_CONSTEXPR /*constexpr*/
 #endif
 
+#if defined(__cpp_if_constexpr)
+#define HIPONY_ENUMERATE_HAS_IF_CONSTEXPR (__cpp_if_constexpr >= 201606L)
+#else
+#define HIPONY_ENUMERATE_HAS_IF_CONSTEXPR false
+#endif
+
 #if defined(__has_cpp_attribute)
 #define HIPONY_ENUMERATE_HAS_NODISCARD __has_cpp_attribute(nodiscard)
 #else
@@ -138,58 +144,6 @@ namespace hipony_enumerate {
 
 namespace detail {
 
-template<typename It>
-HIPONY_ENUMERATE_CONSTEXPR auto do_next(
-    It                                                 it,
-    typename std::iterator_traits<It>::difference_type n,
-    std::input_iterator_tag                            tag) noexcept -> It
-{
-    return (n > 0) ? do_next(++it, --n, tag) : it;
-}
-
-template<typename It>
-HIPONY_ENUMERATE_CONSTEXPR auto do_advance(
-    It                                                 it,
-    typename std::iterator_traits<It>::difference_type n,
-    std::bidirectional_iterator_tag                    tag) noexcept -> It
-{
-    return (n > 0) ? do_next(++it, --n, tag) : ((n < 0) ? do_next(--it, ++n, tag) : it);
-}
-
-template<typename It>
-HIPONY_ENUMERATE_CONSTEXPR auto do_advance(
-    It                                                 it,
-    typename std::iterator_traits<It>::difference_type n,
-    std::random_access_iterator_tag /*tag*/) noexcept -> It
-{
-    return it + n;
-}
-
-template<typename It>
-HIPONY_ENUMERATE_CONSTEXPR auto
-next(It it, typename std::iterator_traits<It>::difference_type n) noexcept -> It
-{
-    return detail::do_next(
-        it,
-        typename std::iterator_traits<It>::difference_type(n),
-        typename std::iterator_traits<It>::iterator_category());
-}
-
-template<typename T>
-constexpr auto is_same() noexcept -> bool
-{
-    return true;
-}
-
-template<typename T, typename First, typename... Tail>
-constexpr auto is_same() noexcept -> bool
-{
-    return std::is_same<T, First>::value && detail::is_same<T, Tail...>();
-}
-
-template<bool Value, typename T = void>
-using enable_if_t = typename std::enable_if<Value, T>::type;
-
 template<typename... Ts>
 struct make_void {
     using type = void;
@@ -198,17 +152,15 @@ struct make_void {
 template<typename... Ts>
 using void_t = typename detail::make_void<Ts...>::type;
 
+template<bool Value, typename T = void>
+using enable_if_t = typename std::enable_if<Value, T>::type;
+
 template<typename T>
 using remove_ref_t = typename std::remove_reference<T>::type;
 
 template<typename T>
 struct remove_rvalue_reference {
     using type = T;
-};
-
-template<typename T>
-struct remove_rvalue_reference<T&> {
-    using type = T&;
 };
 
 template<typename T>
@@ -272,9 +224,6 @@ struct is_string_literal<char16_t const> : std::true_type {};
 
 template<>
 struct is_string_literal<char32_t const> : std::true_type {};
-
-template<typename T>
-using is_pointer = typename std::is_pointer<T>;
 
 #if HIPONY_ENUMERATE_HAS_RANGES
 
@@ -372,238 +321,21 @@ struct size<Size, T, typename detail::enable_if_t<std::is_integral<Size>::value>
 template<typename... Ts>
 using size_t = typename detail::size<Ts...>::type;
 
-struct variadic_tuple_tag_t {};
-struct variadic_array_tag_t {};
-struct iterator_pointer_tag_t {};
-struct iterator_tag_t {};
-struct container_tag_t {};
-struct container_size_tag_t {};
-struct tuple_tag_t {};
-struct pointer_tag_t {};
-struct string_tag_t {};
-struct array_tag_t {};
-
-#if HIPONY_ENUMERATE_HAS_AGGREGATES
-struct aggregate_tag_t {};
-#endif
-
-template<typename Size, typename T, typename = void, typename...>
-struct tag;
-
-template<typename Size, typename T, typename T1>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<
-        detail::is_same<T, T1>() && detail::is_iterator<T>::value && detail::is_pointer<T>::value>,
-    T1> {
-    using type = iterator_pointer_tag_t;
-};
-
-template<typename Size, typename T, typename Sentinel>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<
-        detail::sentinel_for<Sentinel, T>::value && detail::is_iterator<T>::value
-        && (!detail::is_pointer<T>::value || !detail::is_pointer<Sentinel>::value)>,
-    Sentinel> {
-    using type = iterator_tag_t;
-};
-
-template<typename Size, typename T>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<!std::is_array<T>::value && detail::is_range<T>::value>> {
-    using type = container_tag_t;
-};
-
-template<typename Size, typename T, typename TSize>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<
-        !std::is_array<T>::value && detail::is_range<T>::value && std::is_integral<Size>::value
-        && std::is_convertible<TSize, Size>::value>,
-    TSize> {
-    using type = container_size_tag_t;
-};
-
-template<typename Size, typename T>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<
-        detail::is_tuple<detail::decay_t<T>>::value && !detail::is_range<T>::value>> {
-    using type = tuple_tag_t;
-};
-
-template<typename Size, typename T, typename TSize>
-struct tag<
-    Size,
-    T*,
-    typename detail::enable_if_t<
-        std::is_integral<Size>::value && std::is_convertible<TSize, Size>::value>,
-    TSize> {
-    using type = pointer_tag_t;
-};
-
-template<typename Size>
-struct tag<Size, char const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-template<typename Size>
-struct tag<Size, wchar_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-#if HIPONY_ENUMERATE_HAS_CHAR8
-
-template<typename Size>
-struct tag<Size, char8_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-#endif
-
-template<typename Size>
-struct tag<Size, char16_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-template<typename Size>
-struct tag<Size, char32_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-template<typename Size, Size N>
-struct tag<Size, char const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-template<typename Size, Size N>
-struct tag<Size, wchar_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-#if HIPONY_ENUMERATE_HAS_CHAR8
-
-template<typename Size, Size N>
-struct tag<Size, char8_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-#endif
-
-template<typename Size, Size N>
-struct tag<Size, char16_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-template<typename Size, Size N>
-struct tag<Size, char32_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = string_tag_t;
-};
-
-template<typename Size, typename T, Size N>
-struct tag<
-    Size,
-    T[N],
-    typename detail::enable_if_t<
-        std::is_integral<Size>::value && !detail::is_string_literal<T>::value>> {
-    using type = array_tag_t;
-};
-
-template<typename Size, typename T, Size N, typename TSize>
-struct tag<
-    Size,
-    T[N],
-    typename detail::enable_if_t<
-        std::is_integral<Size>::value && std::is_convertible<TSize, Size>::value>,
-    TSize> {
-    using type = array_tag_t;
-};
-
-#if HIPONY_ENUMERATE_HAS_AGGREGATES
-
-template<typename Size, typename T>
-struct tag<
-    Size,
-    T,
-    typename detail::enable_if_t<
-        std::is_aggregate<T>::value && !std::is_polymorphic<T>::value && !detail::is_tuple<T>::value
-        && !std::is_array<T>::value>> {
-    using type = aggregate_tag_t;
-};
-
-#endif
-
-template<typename... Ts>
-using tag_t = typename tag<Ts...>::type;
-
 template<typename Size>
 struct dynamic_extent {
     static Size const value = static_cast<Size>(-1);
 };
 
-template<typename T, typename Size, Size N = detail::dynamic_extent<Size>::value>
+template<
+    typename It,
+    typename Sentinel,
+    typename Size,
+    Size N   = detail::dynamic_extent<Size>::value,
+    typename = void>
 class span {
 public:
-    using value_type      = T;
-    using pointer         = T*;
-    using reference       = T&;
-    using const_reference = const T&;
-    using iterator        = T*;
-    using const_iterator  = T*;
-    using size_type       = Size;
+    static_assert(detail::sentinel_for<Sentinel, It>::value, "Sentinel doesn't match Iterator");
 
-private:
-    pointer   _ptr;
-    size_type _size;
-
-public:
-    HIPONY_ENUMERATE_CONSTEXPR span(pointer begin, pointer end)
-        : _ptr{begin}
-        , _size{static_cast<size_type>(end - begin)}
-    {
-        assert(_size >= 0 && "Size is negative");
-    }
-    HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr, size_type size)
-        : _ptr{ptr}
-        , _size{size}
-    {
-        assert(_size >= 0 && "Size is negative");
-    }
-    HIPONY_ENUMERATE_CONSTEXPR span(pointer ptr)
-        : _ptr{ptr}
-        , _size{N}
-    {
-        assert(_size >= 0 && "Size is negative");
-    }
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
-        -> const_iterator
-    {
-        return _ptr;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
-        -> const_iterator
-    {
-        return _ptr + _size;
-    }
-
-    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
-    {
-        return _size;
-    }
-};
-
-template<typename It, typename Sentinel, typename Size>
-class range_span {
-public:
     using iterator       = It;
     using sentinel       = Sentinel;
     using const_iterator = It;
@@ -615,7 +347,7 @@ private:
     sentinel _end;
 
 public:
-    HIPONY_ENUMERATE_CONSTEXPR range_span(iterator begin, sentinel end)
+    HIPONY_ENUMERATE_CONSTEXPR span(iterator begin, sentinel end)
         : _begin{begin}
         , _end{end}
     {}
@@ -630,6 +362,70 @@ public:
         -> const_sentinel
     {
         return _end;
+    }
+};
+
+template<typename It, typename Sentinel, typename Size, Size N>
+class span<
+    It,
+    Sentinel,
+    Size,
+    N,
+    typename detail::enable_if_t<
+        std::is_base_of<
+            std::random_access_iterator_tag,
+            typename std::iterator_traits<It>::iterator_category>::value
+        && std::is_same<It, Sentinel>::value>> {
+public:
+    using iterator       = It;
+    using sentinel       = Sentinel;
+    using const_iterator = It;
+    using const_sentinel = Sentinel;
+    using size_type      = Size;
+
+    using iterator_category = typename std::iterator_traits<iterator>::iterator_category;
+
+private:
+    iterator _begin;
+    sentinel _end;
+
+public:
+    HIPONY_ENUMERATE_CONSTEXPR span(iterator begin, sentinel end)
+        : _begin{begin}
+        , _end{end}
+    {
+        assert((_end - _begin) >= 0 && "Size is negative");
+    }
+
+    HIPONY_ENUMERATE_CONSTEXPR span(iterator ptr, size_type size)
+        : _begin{ptr}
+        , _end{ptr + size}
+    {
+        assert(size >= 0 && "Size is negative");
+    }
+
+    HIPONY_ENUMERATE_CONSTEXPR span(iterator ptr)
+        : _begin{ptr}
+        , _end{ptr + N}
+    {
+        assert(N >= 0 && "Size is negative");
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto begin() const noexcept
+        -> const_iterator
+    {
+        return _begin;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto end() const noexcept
+        -> const_sentinel
+    {
+        return _end;
+    }
+
+    HIPONY_ENUMERATE_NODISCARD HIPONY_ENUMERATE_CONSTEXPR auto size() const noexcept -> size_type
+    {
+        return _end - _begin;
     }
 };
 
@@ -669,6 +465,8 @@ struct zstring_iterator {
         ++(*this);
         return tmp;
     }
+
+    // NOTE: We don't use a Sentinel in here because we want to support C++11
 
     HIPONY_ENUMERATE_NODISCARD friend HIPONY_ENUMERATE_CONSTEXPR auto
     operator==(zstring_iterator const& lhs, zstring_iterator const& rhs) noexcept -> bool
@@ -1650,6 +1448,177 @@ struct aggregate_wrapper {
 
 #endif
 
+struct variadic_tuple_tag_t {};
+struct variadic_array_tag_t {};
+struct iterator_pointer_tag_t {};
+struct iterator_tag_t {};
+struct container_tag_t {};
+struct container_size_tag_t {};
+struct tuple_tag_t {};
+struct pointer_tag_t {};
+struct string_tag_t {};
+struct array_tag_t {};
+
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+struct aggregate_tag_t {};
+#endif
+
+template<typename Size, typename T, typename = void, typename...>
+struct tag;
+
+template<typename Size, typename T, typename T1>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        std::is_same<T, T1>::value && detail::is_iterator<T>::value && std::is_pointer<T>::value>,
+    T1> {
+    using type = iterator_pointer_tag_t;
+};
+
+template<typename Size, typename T, typename Sentinel>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::sentinel_for<Sentinel, T>::value && detail::is_iterator<T>::value
+        && (!std::is_pointer<T>::value || !std::is_pointer<Sentinel>::value)>,
+    Sentinel> {
+    using type = iterator_tag_t;
+};
+
+template<typename Size, typename T>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<!std::is_array<T>::value && detail::is_range<T>::value>> {
+    using type = container_tag_t;
+};
+
+template<typename Size, typename T, typename TSize>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        !std::is_array<T>::value && detail::is_range<T>::value && std::is_integral<Size>::value
+        && std::is_convertible<TSize, Size>::value>,
+    TSize> {
+    using type = container_size_tag_t;
+};
+
+template<typename Size, typename T>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        detail::is_tuple<detail::decay_t<T>>::value && !detail::is_range<T>::value>> {
+    using type = tuple_tag_t;
+};
+
+template<typename Size, typename T, typename TSize>
+struct tag<
+    Size,
+    T*,
+    typename detail::enable_if_t<
+        std::is_integral<Size>::value && std::is_convertible<TSize, Size>::value>,
+    TSize> {
+    using type = pointer_tag_t;
+};
+
+template<typename Size>
+struct tag<Size, char const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size>
+struct tag<Size, wchar_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#if HIPONY_ENUMERATE_HAS_CHAR8
+
+template<typename Size>
+struct tag<Size, char8_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#endif
+
+template<typename Size>
+struct tag<Size, char16_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size>
+struct tag<Size, char32_t const*, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size, Size N>
+struct tag<Size, char const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size, Size N>
+struct tag<Size, wchar_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#if HIPONY_ENUMERATE_HAS_CHAR8
+
+template<typename Size, Size N>
+struct tag<Size, char8_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+#endif
+
+template<typename Size, Size N>
+struct tag<Size, char16_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size, Size N>
+struct tag<Size, char32_t const[N], typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = string_tag_t;
+};
+
+template<typename Size, typename T, Size N>
+struct tag<
+    Size,
+    T[N],
+    typename detail::enable_if_t<
+        std::is_integral<Size>::value && !detail::is_string_literal<T>::value>> {
+    using type = array_tag_t;
+};
+
+template<typename Size, typename T, Size N, typename TSize>
+struct tag<
+    Size,
+    T[N],
+    typename detail::enable_if_t<
+        std::is_integral<Size>::value && std::is_convertible<TSize, Size>::value>,
+    TSize> {
+    using type = array_tag_t;
+};
+
+#if HIPONY_ENUMERATE_HAS_AGGREGATES
+
+template<typename Size, typename T>
+struct tag<
+    Size,
+    T,
+    typename detail::enable_if_t<
+        std::is_aggregate<T>::value && !std::is_polymorphic<T>::value && !detail::is_tuple<T>::value
+        && !std::is_array<T>::value>> {
+    using type = aggregate_tag_t;
+};
+
+#endif
+
+template<typename... Ts>
+using tag_t = typename tag<Ts...>::type;
+
 template<typename Tag = void, typename...>
 struct dispatch;
 
@@ -1666,14 +1635,13 @@ struct dispatch<detail::variadic_array_tag_t, Size, T, Ts...> {
 template<typename Size, typename T, typename T1>
 struct dispatch<detail::iterator_pointer_tag_t, Size, T, T1> {
     using type
-        = detail::range<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
+        = detail::range<Size, detail::span<detail::remove_ref_t<T>, detail::remove_ref_t<T1>, Size>>;
 };
 
 template<typename Size, typename T, typename Sentinel>
 struct dispatch<detail::iterator_tag_t, Size, T, Sentinel> {
-    using type = detail::range<
-        Size,
-        detail::range_span<detail::remove_ref_t<T>, detail::remove_ref_t<Sentinel>, Size>>;
+    using type = detail::
+        range<Size, detail::span<detail::remove_ref_t<T>, detail::remove_ref_t<Sentinel>, Size>>;
 };
 
 template<typename Size, typename T>
@@ -1704,7 +1672,7 @@ struct dispatch<detail::tuple_tag_t, Size, T> {
 template<typename Size, typename T, typename TSize>
 struct dispatch<detail::pointer_tag_t, Size, T, TSize> {
     using type
-        = detail::range<Size, detail::span<detail::remove_pointer_t<detail::remove_ref_t<T>>, Size>>;
+        = detail::range<Size, detail::span<detail::remove_ref_t<T>, detail::remove_ref_t<T>, Size>>;
 };
 
 template<typename Size, typename T>
@@ -1714,12 +1682,14 @@ struct dispatch<detail::string_tag_t, Size, T> {
 
 template<typename Size, typename T, Size N>
 struct dispatch<detail::array_tag_t, Size, T (&)[N]> {
-    using type = detail::range<Size, detail::span<detail::remove_ref_t<T>, Size, N>>;
+    using type = detail::
+        range<Size, detail::span<detail::remove_ref_t<T>*, detail::remove_ref_t<T>*, Size, N>>;
 };
 
 template<typename Size, typename T, Size N, typename TSize>
 struct dispatch<detail::array_tag_t, Size, T (&)[N], TSize> {
-    using type = detail::range<Size, detail::span<detail::remove_ref_t<T>, Size>>;
+    using type
+        = detail::range<Size, detail::span<detail::remove_ref_t<T>*, detail::remove_ref_t<T>*, Size>>;
 };
 
 #if HIPONY_ENUMERATE_HAS_AGGREGATES
