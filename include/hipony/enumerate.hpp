@@ -326,7 +326,12 @@ struct dynamic_extent {
     static Size const value = static_cast<Size>(-1);
 };
 
-template<typename It, typename Sentinel, typename Size, Size N = detail::dynamic_extent<Size>::value>
+template<
+    typename It,
+    typename Sentinel,
+    typename Size,
+    Size N   = detail::dynamic_extent<Size>::value,
+    typename = void>
 class span {
 public:
     static_assert(detail::sentinel_for<Sentinel, It>::value, "Sentinel doesn't match Iterator");
@@ -364,13 +369,13 @@ template<typename It, typename Sentinel, typename Size, Size N>
 class span<
     It,
     Sentinel,
-    detail::enable_if_t<
+    Size,
+    N,
+    typename detail::enable_if_t<
         std::is_base_of<
             std::random_access_iterator_tag,
             typename std::iterator_traits<It>::iterator_category>::value
-            && std::is_same<It, Sentinel>::value,
-        Size>,
-    N> {
+        && std::is_same<It, Sentinel>::value>> {
 public:
     using iterator       = It;
     using sentinel       = Sentinel;
