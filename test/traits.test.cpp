@@ -171,17 +171,28 @@ static_assert(
     "");
 
 static_assert(
-    std::is_same<detail::tag_t<std::size_t, int*, void, int>, detail::pointer_tag_t>::value,
+    std::is_same<detail::tag_t<std::size_t, int*, void, std::size_t>, detail::pointer_tag_t>::value,
     "");
 static_assert(
-    std::is_same<detail::tag_t<std::size_t, char*, void, int>, detail::pointer_tag_t>::value,
+    std::is_same<detail::tag_t<std::size_t, char*, void, std::size_t>, detail::pointer_tag_t>::value,
     "");
 static_assert(
-    std::is_same<detail::tag_t<std::size_t, char const*, void, int>, detail::pointer_tag_t>::value,
-    "");
-static_assert(
-    std::is_same<detail::tag_t<std::size_t, char const*, void, int const>, detail::pointer_tag_t>::
+    std::is_same<detail::tag_t<std::size_t, char const*, void, std::size_t>, detail::pointer_tag_t>::
         value,
+    "");
+static_assert(
+    std::is_same<
+        detail::tag_t<std::size_t, char const*, void, std::size_t const>,
+        detail::pointer_tag_t>::value,
+    "");
+
+static_assert(std::is_same<detail::tag_t<int, int*, void, int>, detail::pointer_tag_t>::value, "");
+static_assert(std::is_same<detail::tag_t<int, char*, void, int>, detail::pointer_tag_t>::value, "");
+static_assert(
+    std::is_same<detail::tag_t<int, char const*, void, int>, detail::pointer_tag_t>::value,
+    "");
+static_assert(
+    std::is_same<detail::tag_t<int, char const*, void, int const>, detail::pointer_tag_t>::value,
     "");
 
 static_assert(
