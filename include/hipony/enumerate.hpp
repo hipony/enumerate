@@ -259,7 +259,7 @@ template<typename T, typename = void>
 struct is_sized_range : std::false_type {};
 
 template<typename T>
-struct is_sized_range<T, typename detail::void_t<decltype(std::size(std::declval<T>()))>>
+struct is_sized_range<T, typename detail::void_t<decltype(std::declval<T>().size())>>
     : detail::is_range<T> {};
 
 #endif
