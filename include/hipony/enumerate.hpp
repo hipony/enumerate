@@ -246,6 +246,45 @@ struct is_range<
 
 #endif
 
+#if HIPONY_ENUMERATE_HAS_RANGES
+
+template<typename T>
+struct is_sized_range {
+    constexpr static auto value = std::ranges::sized_range<T>;
+};
+
+#else
+
+template<typename T, typename = void>
+struct is_sized_range : std::false_type {};
+
+template<typename T>
+struct is_sized_range<T, typename detail::void_t<decltype(std::size(std::declval<T>()))>>
+    : detail::is_range<T> {};
+
+#endif
+
+#if HIPONY_ENUMERATE_HAS_RANGES
+
+template<typename T>
+struct is_random_access_range {
+    constexpr static auto value = std::ranges::random_access_range<T>;
+};
+
+#else
+
+template<typename T, typename = void>
+struct is_random_access_range : std::false_type {};
+
+template<typename T>
+struct is_random_access_range<
+    T,
+    typename detail::enable_if_t<std::is_base_of<
+        std::random_access_iterator_tag,
+        typename std::iterator_traits<T>::iterator_category>::value>> : detail::is_range<T> {};
+
+#endif
+
 #if HIPONY_ENUMERATE_HAS_CONCEPTS
 
 template<typename T>
@@ -1108,23 +1147,25 @@ template<typename Size, typename Container>
 struct limited_range<
     Size,
     Container,
-    typename detail::enable_if_t<std::is_base_of<
-        std::random_access_iterator_tag,
-        typename std::iterator_traits<
-            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>> {
+    typename detail::enable_if_t<
+        detail::is_sized_range<detail::remove_cvref_t<Container>>::value
+        && detail::is_random_access_range<detail::remove_cvref_t<Container>>::value>> {
     using value_type      = typename detail::remove_rref_t<Container>;
     using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
     using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type       = Size;
 
     struct impl_t {
-        value_type data;
-        size_type  size;
+        value_type      data;
+        difference_type size;
 
         HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
         HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type&& data_, size_type size_)
             : data{static_cast<decltype(data_)&&>(data_)}
-            , size{size_}
+            , size{
+                  static_cast<difference_type>(size_) < static_cast<difference_type>(data.size())
+                      ? static_cast<difference_type>(size_)
+                      : static_cast<difference_type>(data.size())}
         {}
     } impl;
 
@@ -1139,9 +1180,7 @@ struct limited_range<
     {
         assert(impl.size >= 0 && "Size is negative");
         return {
-            ((impl.data.end() - impl.data.begin()) > static_cast<difference_type>(impl.size))
-                ? (impl.data.begin() + impl.size)
-                : impl.data.end(),
+            impl.data.begin() + static_cast<difference_type>(impl.size),
             static_cast<size_type>(-1)};
     }
 
@@ -1156,9 +1195,7 @@ struct limited_range<
     {
         assert(impl.size >= 0 && "Size is negative");
         return {
-            ((impl.data.end() - impl.data.begin()) > static_cast<difference_type>(impl.size))
-                ? (impl.data.begin() + impl.size)
-                : impl.data.end(),
+            impl.data.begin() + static_cast<difference_type>(impl.size),
             static_cast<size_type>(-1)};
     }
 };
@@ -1220,10 +1257,9 @@ template<typename Size, typename Container>
 struct limited_range_view<
     Size,
     Container,
-    typename detail::enable_if_t<std::is_base_of<
-        std::random_access_iterator_tag,
-        typename std::iterator_traits<
-            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>>
+    typename detail::enable_if_t<
+        detail::is_sized_range<detail::remove_cvref_t<Container>>::value
+        && detail::is_random_access_range<detail::remove_cvref_t<Container>>::value>>
     : std::ranges::view_interface<limited_range_view<Size, Container>> {
     using value_type      = typename detail::remove_rref_t<Container>;
     using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
@@ -1231,13 +1267,16 @@ struct limited_range_view<
     using size_type       = Size;
 
     struct impl_t {
-        value_type* data;
-        size_type   size;
+        value_type*     data;
+        difference_type size;
 
         HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
         HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
             : data{&data_}
-            , size{size_}
+            , size{
+                  static_cast<difference_type>(size_) < static_cast<difference_type>(data->size())
+                      ? static_cast<difference_type>(size_)
+                      : static_cast<difference_type>(data->size())}
         {}
     } impl;
 
@@ -1258,9 +1297,7 @@ struct limited_range_view<
     {
         assert(impl.size >= 0 && "Size is negative");
         return {
-            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
-                ? (impl.data->begin() + impl.size)
-                : impl.data->end(),
+            impl.data->begin() + static_cast<difference_type>(impl.size),
             static_cast<size_type>(-1)};
     }
 
@@ -1275,9 +1312,7 @@ struct limited_range_view<
     {
         assert(impl.size >= 0 && "Size is negative");
         return {
-            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
-                ? (impl.data->begin() + impl.size)
-                : impl.data->end(),
+            impl.data->begin() + static_cast<difference_type>(impl.size),
             static_cast<size_type>(-1)};
     }
 };
@@ -1336,23 +1371,25 @@ template<typename Size, typename Container>
 struct limited_basic_view<
     Size,
     Container,
-    typename detail::enable_if_t<std::is_base_of<
-        std::random_access_iterator_tag,
-        typename std::iterator_traits<
-            typename detail::remove_cvref_t<Container>::iterator>::iterator_category>::value>> {
+    typename detail::enable_if_t<
+        detail::is_sized_range<detail::remove_cvref_t<Container>>::value
+        && detail::is_random_access_range<detail::remove_cvref_t<Container>>::value>> {
     using value_type      = typename detail::remove_rref_t<Container>;
     using inner_iterator  = typename detail::remove_cvref_t<Container>::iterator;
     using difference_type = typename std::iterator_traits<inner_iterator>::difference_type;
     using size_type       = Size;
 
     struct impl_t {
-        value_type* data;
-        size_type   size;
+        value_type*     data;
+        difference_type size;
 
         HIPONY_ENUMERATE_CONSTEXPR impl_t() = default;
         HIPONY_ENUMERATE_CONSTEXPR impl_t(value_type& data_, size_type size_)
             : data{&data_}
-            , size{size_}
+            , size{
+                  static_cast<difference_type>(size_) < static_cast<difference_type>(data->size())
+                      ? static_cast<difference_type>(size_)
+                      : static_cast<difference_type>(data->size())}
         {}
     } impl;
 
@@ -1367,9 +1404,7 @@ struct limited_basic_view<
     {
         assert(impl.size >= 0 && "Size is negative");
         return {
-            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
-                ? (impl.data->begin() + impl.size)
-                : impl.data->end(),
+            impl.data->begin() + static_cast<difference_type>(impl.size),
             static_cast<size_type>(-1)};
     }
 
@@ -1384,9 +1419,7 @@ struct limited_basic_view<
     {
         assert(impl.size >= 0 && "Size is negative");
         return {
-            ((impl.data->end() - impl.data->begin()) > static_cast<difference_type>(impl.size))
-                ? (impl.data->begin() + impl.size)
-                : impl.data->end(),
+            impl.data->begin() + static_cast<difference_type>(impl.size),
             static_cast<size_type>(-1)};
     }
 };
