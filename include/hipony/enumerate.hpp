@@ -203,6 +203,13 @@ struct sanitize<T(&&)[N]> {
 template<typename T>
 using sanitize_t = typename sanitize<T>::type;
 
+template<typename From, typename To, typename = void>
+struct is_narrow_convertible : std::true_type {};
+
+template<typename From, typename To>
+struct is_narrow_convertible<From, To, detail::void_t<decltype(To{std::declval<From>()})>>
+    : std::false_type {};
+
 template<typename T>
 struct is_string_literal : std::false_type {};
 
@@ -1536,6 +1543,10 @@ struct tag<
         !std::is_array<T>::value && detail::is_range<T>::value && std::is_integral<Size>::value
         && std::is_convertible<TSize, Size>::value>,
     TSize> {
+    static_assert(
+        !detail::is_narrow_convertible<TSize, Size>::value,
+        "Narrowing conversions for Size are not allowed. Either cast it explicitly or use the "
+        "`_as<Size>` overload.");
     using type = container_size_tag_t;
 };
 
@@ -1555,6 +1566,10 @@ struct tag<
     typename detail::enable_if_t<
         std::is_integral<Size>::value && std::is_convertible<TSize, Size>::value>,
     TSize> {
+    static_assert(
+        !detail::is_narrow_convertible<TSize, Size>::value,
+        "Narrowing conversions for Size are not allowed. Either cast it explicitly or use the "
+        "`_as<Size>` overload.");
     using type = pointer_tag_t;
 };
 
@@ -1632,6 +1647,10 @@ struct tag<
     typename detail::enable_if_t<
         std::is_integral<Size>::value && std::is_convertible<TSize, Size>::value>,
     TSize> {
+    static_assert(
+        !detail::is_narrow_convertible<TSize, Size>::value,
+        "Narrowing conversions for Size are not allowed. Either cast it explicitly or use the "
+        "`_as<Size>` overload.");
     using type = array_tag_t;
 };
 
