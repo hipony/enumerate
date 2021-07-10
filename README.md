@@ -69,6 +69,9 @@ int main() {
     for(auto&& [index, value] : hipony::enumerate(array) | std::ranges::views::take(3)) {
         std::cout << index << ' ' << value << '\n';
     }
+    for(auto&& [index, value] : array | hipony::enumerate() | std::ranges::views::take(3)) {
+        std::cout << index << ' ' << value << '\n';
+    }
 
     auto range = hipony::enumerate(std::array{0, 1, 2, 3, 4, 5});
     for(auto&& [index, value] : range | std::ranges::views::take(3)) {
