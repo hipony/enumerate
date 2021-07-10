@@ -253,6 +253,18 @@ struct is_range<
 
 #endif
 
+template<typename Container>
+HIPONY_ENUMERATE_CONSTEXPR inline auto size(Container const& c) -> decltype(c.size())
+{
+    return c.size();
+}
+
+template<typename T, std::size_t N>
+HIPONY_ENUMERATE_CONSTEXPR inline auto size(const T (&)[N]) noexcept -> std::size_t
+{
+    return N;
+}
+
 #if HIPONY_ENUMERATE_HAS_RANGES
 
 template<typename T>
@@ -266,10 +278,28 @@ template<typename T, typename = void>
 struct is_sized_range : std::false_type {};
 
 template<typename T>
-struct is_sized_range<T, typename detail::void_t<decltype(std::declval<T>().size())>>
+struct is_sized_range<T, typename detail::void_t<decltype(detail::size(std::declval<T>()))>>
     : detail::is_range<T> {};
 
 #endif
+
+template<typename = void, typename = void, typename = void>
+struct size_adapter {
+    using type = std::size_t;
+};
+
+template<typename T>
+struct size_adapter<void, T, typename detail::enable_if_t<detail::is_sized_range<T>::value>> {
+    using type = decltype(detail::size(std::declval<T&>()));
+};
+
+template<typename Size, typename T>
+struct size_adapter<Size, T, typename detail::enable_if_t<std::is_integral<Size>::value>> {
+    using type = Size;
+};
+
+template<typename... Ts>
+using size_t = typename detail::size_adapter<Ts...>::type;
 
 #if HIPONY_ENUMERATE_HAS_RANGES
 
@@ -345,27 +375,6 @@ struct is_tuple : std::false_type {};
 template<typename T>
 struct is_tuple<T, typename detail::void_t<decltype(std::tuple_size<T>::value)>>
     : std::true_type {};
-
-template<typename = void, typename = void, typename = void>
-struct size {
-    using type = std::size_t;
-};
-
-template<typename T>
-struct size<
-    void,
-    T,
-    typename detail::enable_if_t<!std::is_array<T>::value && detail::is_range<T>::value>> {
-    using type = typename T::size_type;
-};
-
-template<typename Size, typename T>
-struct size<Size, T, typename detail::enable_if_t<std::is_integral<Size>::value>> {
-    using type = Size;
-};
-
-template<typename... Ts>
-using size_t = typename detail::size<Ts...>::type;
 
 template<typename Size>
 struct dynamic_extent {
@@ -1830,10 +1839,54 @@ enumerate_as(as_array_tag_t /*_*/, T&& t, Ts&&... ts) noexcept -> detail::
     return {{static_cast<T&&>(t), static_cast<Ts&&>(ts)...}};
 }
 
+#if HIPONY_ENUMERATE_HAS_RANGES
+
+template<typename Size = detail::void_t<>>
+struct enumerate_adapter_closure {
+    template<std::ranges::viewable_range R>
+    constexpr auto operator()(R&& r) const
+    {
+        return hipony_enumerate::enumerate_as<Size>(static_cast<R&&>(r));
+    }
+};
+
+template<typename Size = detail::void_t<>>
+struct enumerate_adapter {
+    template<typename... Args>
+    constexpr auto operator()(Args&&... args) const
+    {
+        return hipony_enumerate::enumerate_as<Size>(static_cast<Args&&>(args)...);
+    }
+
+    constexpr auto operator()() const
+    {
+        return enumerate_adapter_closure<Size>();
+    }
+};
+
+template<std::ranges::viewable_range R, typename Size>
+constexpr auto operator|(R&& r, enumerate_adapter_closure<Size> const& c)
+{
+    return c(static_cast<R&&>(r));
+}
+
+#endif
+
 } // namespace hipony_enumerate
+
+#if HIPONY_ENUMERATE_HAS_RANGES
+
+inline constexpr auto enumerate = hipony_enumerate::enumerate_adapter{};
+
+template<typename Size>
+inline constexpr auto enumerate_as = hipony_enumerate::enumerate_adapter<Size>{};
+
+#else
 
 using hipony_enumerate::enumerate;
 using hipony_enumerate::enumerate_as;
+
+#endif
 
 } // namespace HIPONY_ENUMERATE_NAMESPACE
 
